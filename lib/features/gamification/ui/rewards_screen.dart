@@ -11,6 +11,7 @@ import '../../../core/theme/widgets.dart';
 import '../../../core/time/format.dart';
 import '../data/rewards_repo.dart';
 import '../data/xp_repo.dart';
+import '../../insights/ui/insights_screens.dart';
 import '../domain/xp_rules.dart';
 
 final _n = NumberFormat.decimalPattern('en_IN');
@@ -92,6 +93,8 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
             ],
           ),
         ),
+        const SizedBox(height: N.gap),
+        const BadgesCard(),
         const SizedBox(height: N.gap),
         GlassCard(
           child: Column(

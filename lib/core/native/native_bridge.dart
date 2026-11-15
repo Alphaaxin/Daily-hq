@@ -46,8 +46,7 @@ class NativeBridge {
     try {
       final l = await _ch.invokeListMethod<Object?>('usageSince', fromUtc.millisecondsSinceEpoch) ?? const [];
       return [
-        for (final e in l.whereType<Map>())
-          ('${e['package']}', '${e['label']}', ((e['ms'] as num?) ?? 0) ~/ 60000),
+        for (final e in l.whereType<Map>()) ('${e['package']}', '${e['label']}', ((e['ms'] as num?) ?? 0) ~/ 60000),
       ];
     } catch (_) {
       return const [];

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:workmanager/workmanager.dart';
 
+import '../../features/game/data/game_engine.dart';
 import '../../features/google/data/calendar_sync.dart';
 import '../../features/mail/data/mail_sender.dart';
 import '../../features/google/data/drive_backup.dart';
@@ -34,6 +35,14 @@ void callbackDispatcher() {
       // Load settings into the container before using them.
       await container.read(settingsStreamProvider.future);
       final s = container.read(settingsProvider);
+      if (task == taskSync) {
+        // Every ~2 h: shields, nudges and the home-screen widget, even offline.
+        try {
+          await container.read(gameEngineProvider).processShields();
+          await container.read(gameEngineProvider).runNudges();
+          await container.read(gameEngineProvider).pushWidgets();
+        } catch (_) {}
+      }
       if (s.googleEmail.isEmpty) return true;
       switch (task) {
         case taskSync:

@@ -27,7 +27,7 @@ void main() {
     expect(cats.where((c) => c.type == 'spent').map((c) => c.name), contains('Food'));
     expect(cats.where((c) => c.type == 'invested').map((c) => c.name), contains('SIP'));
     expect(cats.where((c) => c.type == 'received').map((c) => c.name), contains('Retainer'));
-    expect(await db.select(db.targets).get(), hasLength(4));
+    expect(await db.select(db.targets).get(), hasLength(6)); // 4 daily + 2 sales (v3)
     expect((await db.select(db.routineItems).get()).where((r) => r.routine == 'morning'), hasLength(3));
     await db.close();
   });
@@ -50,7 +50,10 @@ void main() {
   test('fresh install creates the latest schema directly', () async {
     final db = openMemoryDb();
     expect(await db.select(db.categories).get(), isNotEmpty);
-    expect(await db.customSelect('PRAGMA user_version').map((r) => r.read<int>('user_version')).getSingle(), AppDb.currentSchema);
+    expect(
+      await db.customSelect('PRAGMA user_version').map((r) => r.read<int>('user_version')).getSingle(),
+      AppDb.currentSchema,
+    );
     await db.close();
   });
 }

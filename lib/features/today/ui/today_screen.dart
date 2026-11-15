@@ -8,9 +8,11 @@ import '../../../core/theme/tokens.dart';
 import '../../../core/theme/widgets.dart';
 import '../../../core/time/format.dart';
 import '../../gamification/data/life_score_provider.dart';
+import '../../game/data/game_repo.dart';
 import '../../gamification/data/xp_repo.dart';
 import '../../focus/ui/build_hour_row.dart';
 import '../../google/ui/today_events.dart';
+import '../../game/ui/quest_card.dart';
 import '../../habits/ui/habits_section.dart';
 import '../../money/data/money_repo.dart';
 import '../../money/domain/money_parser.dart';
@@ -43,6 +45,7 @@ class TodayScreen extends ConsumerWidget {
       const EveningShutdownCard(),
       gap(const _HeroCard()),
       gap(const _FocusCard()),
+      if (s.on(Module.quests)) gap(const QuestCard()),
       if (s.on(Module.tasks)) gap(const TasksCard()),
       if (s.on(Module.water) || s.on(Module.habits) || s.on(Module.salah) || s.on(Module.mood)) const _BodySoulCard(),
     ];
@@ -69,7 +72,7 @@ class _HeroCard extends ConsumerWidget {
     final clock = ref.watch(clockProvider);
     final today = ref.watch(todayProvider);
     final lvl = ref.watch(levelProvider);
-    final streak = ref.watch(overallStreakProvider);
+    final streak = ref.watch(shieldedStreakProvider);
     final xpToday = ref.watch(xpTodayProvider).value ?? 0;
     final score = ref.watch(lifeScoreProvider);
     final hr = clock.toLocal(clock.nowUtc()).hour;

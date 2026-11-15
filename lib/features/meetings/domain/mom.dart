@@ -9,10 +9,10 @@ class ActionItem {
 
   Map<String, Object?> toJson() => {'task': task, 'owner': owner, 'deadline': deadline};
   static ActionItem fromJson(Map<String, Object?> j) => ActionItem(
-        task: (j['task'] as String? ?? '').trim(),
-        owner: (j['owner'] as String? ?? '').trim(),
-        deadline: _date(j['deadline']),
-      );
+    task: (j['task'] as String? ?? '').trim(),
+    owner: (j['owner'] as String? ?? '').trim(),
+    deadline: _date(j['deadline']),
+  );
 }
 
 class Mom {
@@ -39,28 +39,28 @@ class Mom {
   final String? workProfile;
 
   Mom copyWith({String? title, List<String>? attendees}) => Mom(
-        title: title ?? this.title,
-        date: date,
-        attendees: attendees ?? this.attendees,
-        summary: summary,
-        keyPoints: keyPoints,
-        decisions: decisions,
-        actionItems: actionItems,
-        followUpDate: followUpDate,
-        workProfile: workProfile,
-      );
+    title: title ?? this.title,
+    date: date,
+    attendees: attendees ?? this.attendees,
+    summary: summary,
+    keyPoints: keyPoints,
+    decisions: decisions,
+    actionItems: actionItems,
+    followUpDate: followUpDate,
+    workProfile: workProfile,
+  );
 
   Map<String, Object?> toJson() => {
-        'title': title,
-        'date': date,
-        'attendees': attendees,
-        'summary': summary,
-        'key_points': keyPoints,
-        'decisions': decisions,
-        'action_items': actionItems.map((a) => a.toJson()).toList(),
-        'follow_up_date': followUpDate,
-        'work_profile': workProfile,
-      };
+    'title': title,
+    'date': date,
+    'attendees': attendees,
+    'summary': summary,
+    'key_points': keyPoints,
+    'decisions': decisions,
+    'action_items': actionItems.map((a) => a.toJson()).toList(),
+    'follow_up_date': followUpDate,
+    'work_profile': workProfile,
+  };
 
   /// Tolerant parser: missing lists become empty, bad dates become null,
   /// blank action items are dropped.
@@ -120,55 +120,51 @@ String? _date(Object? v) {
 
 /// Gemini response schema (OpenAPI subset) for [Mom].
 Map<String, Object?> momSchema({List<String> profiles = const []}) => {
-      'type': 'OBJECT',
-      'properties': {
-        'title': {'type': 'STRING', 'description': 'Short meeting title'},
-        'date': {'type': 'STRING', 'description': 'YYYY-MM-DD', 'nullable': true},
-        'attendees': {
-          'type': 'ARRAY',
-          'items': {'type': 'STRING'},
+  'type': 'OBJECT',
+  'properties': {
+    'title': {'type': 'STRING', 'description': 'Short meeting title'},
+    'date': {'type': 'STRING', 'description': 'YYYY-MM-DD', 'nullable': true},
+    'attendees': {
+      'type': 'ARRAY',
+      'items': {'type': 'STRING'},
+    },
+    'summary': {'type': 'STRING', 'description': '3-6 sentence summary in English'},
+    'key_points': {
+      'type': 'ARRAY',
+      'items': {'type': 'STRING'},
+    },
+    'decisions': {
+      'type': 'ARRAY',
+      'items': {'type': 'STRING'},
+    },
+    'action_items': {
+      'type': 'ARRAY',
+      'items': {
+        'type': 'OBJECT',
+        'properties': {
+          'task': {'type': 'STRING'},
+          'owner': {'type': 'STRING'},
+          'deadline': {'type': 'STRING', 'description': 'YYYY-MM-DD', 'nullable': true},
         },
-        'summary': {'type': 'STRING', 'description': '3-6 sentence summary in English'},
-        'key_points': {
-          'type': 'ARRAY',
-          'items': {'type': 'STRING'},
-        },
-        'decisions': {
-          'type': 'ARRAY',
-          'items': {'type': 'STRING'},
-        },
-        'action_items': {
-          'type': 'ARRAY',
-          'items': {
-            'type': 'OBJECT',
-            'properties': {
-              'task': {'type': 'STRING'},
-              'owner': {'type': 'STRING'},
-              'deadline': {'type': 'STRING', 'description': 'YYYY-MM-DD', 'nullable': true},
-            },
-            'required': ['task'],
-          },
-        },
-        'follow_up_date': {'type': 'STRING', 'description': 'YYYY-MM-DD', 'nullable': true},
-        'work_profile': {
-          'type': 'STRING',
-          'nullable': true,
-          if (profiles.isNotEmpty) 'enum': profiles,
-        },
+        'required': ['task'],
       },
-      'required': ['title', 'summary', 'key_points', 'decisions', 'action_items', 'attendees'],
-      'propertyOrdering': [
-        'title',
-        'date',
-        'attendees',
-        'summary',
-        'key_points',
-        'decisions',
-        'action_items',
-        'follow_up_date',
-        'work_profile',
-      ],
-    };
+    },
+    'follow_up_date': {'type': 'STRING', 'description': 'YYYY-MM-DD', 'nullable': true},
+    'work_profile': {'type': 'STRING', 'nullable': true, if (profiles.isNotEmpty) 'enum': profiles},
+  },
+  'required': ['title', 'summary', 'key_points', 'decisions', 'action_items', 'attendees'],
+  'propertyOrdering': [
+    'title',
+    'date',
+    'attendees',
+    'summary',
+    'key_points',
+    'decisions',
+    'action_items',
+    'follow_up_date',
+    'work_profile',
+  ],
+};
 
 const transcribePrompt =
     'Transcribe this meeting audio. Speakers may use English, Hindi, Urdu, Telugu or a mix. '

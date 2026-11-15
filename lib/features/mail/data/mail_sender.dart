@@ -21,11 +21,11 @@ class Recipient {
   final int? personId;
 
   Map<String, String> get values => {
-        'name': name.isEmpty ? '' : firstName(name),
-        'full_name': name,
-        'email': email,
-        ...vars,
-      };
+    'name': name.isEmpty ? '' : firstName(name),
+    'full_name': name,
+    'email': email,
+    ...vars,
+  };
 }
 
 const taskMailQueue = 'nizam.mailQueue';
@@ -94,27 +94,31 @@ class MailSender {
       final limit = ref.read(settingsProvider).mailDailyLimit;
       while (true) {
         final now = DateTime.now().toUtc();
-        final next = await (_db.select(_db.mailSends)
-              ..where((m) => m.status.equals('queued') & m.scheduledAtUtc.isSmallerOrEqualValue(now))
-              ..orderBy([(m) => OrderingTerm.asc(m.scheduledAtUtc), (m) => OrderingTerm.asc(m.id)])
-              ..limit(1))
-            .getSingleOrNull();
+        final next =
+            await (_db.select(_db.mailSends)
+                  ..where((m) => m.status.equals('queued') & m.scheduledAtUtc.isSmallerOrEqualValue(now))
+                  ..orderBy([(m) => OrderingTerm.asc(m.scheduledAtUtc), (m) => OrderingTerm.asc(m.id)])
+                  ..limit(1))
+                .getSingleOrNull();
         if (next == null) break;
         if (remainingToday(sentToday: await gmail.sentToday(), dailyLimit: limit) == 0) break;
         try {
           final id = await gmail.send(to: next.toEmail, toName: next.toName, subject: next.subject, body: next.body);
-          await (_db.update(_db.mailSends)..where((m) => m.id.equals(next.id))).write(MailSendsCompanion(
-                status: const Value('sent'),
-                sentAtUtc: Value(DateTime.now().toUtc()),
-                gmailId: Value(id),
-              ));
+          await (_db.update(_db.mailSends)..where((m) => m.id.equals(next.id))).write(
+            MailSendsCompanion(
+              status: const Value('sent'),
+              sentAtUtc: Value(DateTime.now().toUtc()),
+              gmailId: Value(id),
+            ),
+          );
           await _afterSend(next);
           sent++;
         } on GmailNotReady {
           rethrow;
         } catch (e) {
-          await (_db.update(_db.mailSends)..where((m) => m.id.equals(next.id)))
-              .write(MailSendsCompanion(status: const Value('failed'), error: Value('$e')));
+          await (_db.update(_db.mailSends)..where((m) => m.id.equals(next.id))).write(
+            MailSendsCompanion(status: const Value('failed'), error: Value('$e')),
+          );
         }
         await Future<void>.delayed(sendGap(sent));
       }
@@ -143,13 +147,15 @@ class MailSender {
     );
   }
 
-  Future<void> cancel(String campaign) => (_db.update(_db.mailSends)
-        ..where((m) => m.campaign.equals(campaign) & m.status.equals('queued')))
-      .write(const MailSendsCompanion(status: Value('cancelled')));
+  Future<void> cancel(String campaign) =>
+      (_db.update(_db.mailSends)..where((m) => m.campaign.equals(campaign) & m.status.equals('queued'))).write(
+        const MailSendsCompanion(status: Value('cancelled')),
+      );
 
-  Future<void> retryFailed(String campaign) => (_db.update(_db.mailSends)
-        ..where((m) => m.campaign.equals(campaign) & m.status.equals('failed')))
-      .write(MailSendsCompanion(status: const Value('queued'), scheduledAtUtc: Value(DateTime.now().toUtc())));
+  Future<void> retryFailed(String campaign) =>
+      (_db.update(_db.mailSends)..where((m) => m.campaign.equals(campaign) & m.status.equals('failed'))).write(
+        MailSendsCompanion(status: const Value('queued'), scheduledAtUtc: Value(DateTime.now().toUtc())),
+      );
 }
 
 final mailSenderProvider = Provider((ref) => MailSender(ref));

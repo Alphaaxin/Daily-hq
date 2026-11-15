@@ -44,13 +44,16 @@ class MeetingsRepo {
     required List<String> paths,
     required DateTime startedAtUtc,
     int durationSec = 0,
-  }) =>
-      db.into(db.meetings).insert(MeetingsCompanion.insert(
-            title: Value(title),
-            startedAtUtc: startedAtUtc,
-            durationSec: Value(durationSec),
-            audioPaths: Value(jsonEncode(paths)),
-          ));
+  }) => db
+      .into(db.meetings)
+      .insert(
+        MeetingsCompanion.insert(
+          title: Value(title),
+          startedAtUtc: startedAtUtc,
+          durationSec: Value(durationSec),
+          audioPaths: Value(jsonEncode(paths)),
+        ),
+      );
 
   Future<void> _set(int id, MeetingsCompanion c) => (db.update(db.meetings)..where((m) => m.id.equals(id))).write(c);
 
@@ -79,7 +82,14 @@ class MeetingsRepo {
       var m = await get(id);
       final done = m.chunks.toList();
       final paths = m.paths;
-      await _set(id, MeetingsCompanion(status: const Value('transcribing'), error: const Value(null), attempts: Value(m.attempts + 1)));
+      await _set(
+        id,
+        MeetingsCompanion(
+          status: const Value('transcribing'),
+          error: const Value(null),
+          attempts: Value(m.attempts + 1),
+        ),
+      );
       for (var i = done.length; i < paths.length; i++) {
         final text = await ai.transcribe(File(paths[i]), prompt: transcribePrompt);
         done.add(text);
@@ -122,7 +132,9 @@ class MeetingsRepo {
 
   Future<void> _saveNote(Meeting m, Mom mom, String transcript) async {
     final existing = await (db.select(db.notes)..where((n) => n.meetingId.equals(m.id))).getSingleOrNull();
-    await ref.read(notesRepoProvider).save(
+    await ref
+        .read(notesRepoProvider)
+        .save(
           id: existing?.id,
           title: mom.title,
           body: '${mom.toText()}\n\n— Transcript —\n$transcript',
@@ -142,7 +154,9 @@ class MeetingsRepo {
       final name = '${c.calendarDateFor(m.startedAtUtc)} ${m.title}'.replaceAll(RegExp(r'[/\\]'), '-');
       final ids = await ref.read(driveFilesProvider).uploadMeeting(name, [...m.paths.map(File.new), t]);
       if (ids != null) await _set(m.id, MeetingsCompanion(driveFileIds: Value(jsonEncode(ids))));
-    } catch (_) {/* Drive is optional */}
+    } catch (_) {
+      /* Drive is optional */
+    }
   }
 
   /// Action items → tasks; follow-up date → reminder (linked to a person
@@ -152,7 +166,9 @@ class MeetingsRepo {
     if (mom == null) return (0, 0);
     var tasks = 0, follow = 0;
     for (final a in mom.actionItems) {
-      await ref.read(tasksRepoProvider).add(
+      await ref
+          .read(tasksRepoProvider)
+          .add(
             title: a.owner.isEmpty ? a.task : '${a.task} (${a.owner})',
             dueDay: a.deadline,
             profileId: m.profileId,
@@ -163,7 +179,9 @@ class MeetingsRepo {
     if (mom.followUpDate != null) {
       final contacts = ref.read(contactsRepoProvider);
       final people = await contacts.allPeople();
-      final match = people.where((p) => mom.attendees.any((a) => a.toLowerCase().contains(p.name.toLowerCase().split(' ').first)));
+      final match = people.where(
+        (p) => mom.attendees.any((a) => a.toLowerCase().contains(p.name.toLowerCase().split(' ').first)),
+      );
       final due = clock.localToUtc(mom.followUpDate!, 11, 0);
       await contacts.addFollowUp(
         personId: match.firstOrNull?.id,
@@ -182,7 +200,9 @@ class MeetingsRepo {
     final mom = m.mom;
     if (mom == null) throw Exception('Minutes aren\'t ready yet');
     final s = ref.read(settingsProvider);
-    final draft = await ref.read(aiProvider).write(
+    final draft = await ref
+        .read(aiProvider)
+        .write(
           'Write a short, friendly follow-up e-mail after this meeting. Thank them, recap the decisions and the '
           'action items with owners and dates, and propose the next step. First line: "Subject: …". '
           'Sign off as ${s.mailSignature}.\n\nMINUTES:\n${mom.toText()}',

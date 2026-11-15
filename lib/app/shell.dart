@@ -104,7 +104,12 @@ class _TopBar extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: GoldText(
                   'SOLO LEVELING',
-                  style: TextStyle(fontFamily: N.display, fontWeight: FontWeight.w700, fontSize: 15, letterSpacing: 2.2),
+                  style: TextStyle(
+                    fontFamily: N.display,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                    letterSpacing: 2.2,
+                  ),
                 ),
               ),
             ),

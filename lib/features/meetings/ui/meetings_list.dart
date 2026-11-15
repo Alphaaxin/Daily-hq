@@ -41,7 +41,9 @@ class MeetingRecorder {
     ref.invalidate(recorderStatusProvider);
     if (parts.isEmpty) return null;
     final started = st.startedAt ?? DateTime.now().toUtc();
-    final id = await ref.read(meetingsRepoProvider).create(
+    final id = await ref
+        .read(meetingsRepoProvider)
+        .create(
           title: 'Meeting',
           paths: parts,
           startedAtUtc: started,
@@ -58,7 +60,9 @@ class MeetingRecorder {
     if (path == null) return null;
     final dir = await Recorder.newDir('meetings');
     final copy = await File(path).copy(p.join(dir.path, p.basename(path)));
-    final id = await ref.read(meetingsRepoProvider).create(
+    final id = await ref
+        .read(meetingsRepoProvider)
+        .create(
           title: p.basenameWithoutExtension(path),
           paths: [copy.path],
           startedAtUtc: (await copy.lastModified()).toUtc(),
@@ -77,35 +81,43 @@ class MeetingsList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final meetings = ref.watch(meetingsProvider).value ?? const <Meeting>[];
     final clock = ref.watch(clockProvider);
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      const RecordCard(),
-      const SizedBox(height: N.gap),
-      if (meetings.isEmpty) const EmptyNote('Recorded and uploaded meetings appear here with their minutes.'),
-      for (final m in meetings)
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: GlassCard(
-            padding: const EdgeInsets.all(14),
-            child: InkWell(
-              onTap: () => context.push('/meeting/${m.id}'),
-              child: Row(children: [
-                Expanded(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(m.title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${fmtDayKey(clock.calendarDateFor(m.startedAtUtc))}, ${fmtTime(clock, m.startedAtUtc)}'
-                      '${m.durationSec > 0 ? ' · ${fmtDuration(Duration(seconds: m.durationSec))}' : ''}',
-                      style: N.small.copyWith(fontSize: 12),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const RecordCard(),
+        const SizedBox(height: N.gap),
+        if (meetings.isEmpty) const EmptyNote('Recorded and uploaded meetings appear here with their minutes.'),
+        for (final m in meetings)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: GlassCard(
+              padding: const EdgeInsets.all(14),
+              child: InkWell(
+                onTap: () => context.push('/meeting/${m.id}'),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(m.title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${fmtDayKey(clock.calendarDateFor(m.startedAtUtc))}, ${fmtTime(clock, m.startedAtUtc)}'
+                            '${m.durationSec > 0 ? ' · ${fmtDuration(Duration(seconds: m.durationSec))}' : ''}',
+                            style: N.small.copyWith(fontSize: 12),
+                          ),
+                        ],
+                      ),
                     ),
-                  ]),
+                    MeetingStatusPill(m),
+                  ],
                 ),
-                MeetingStatusPill(m),
-              ]),
+              ),
             ),
           ),
-        ),
-    ]);
+      ],
+    );
   }
 }
 
@@ -115,12 +127,12 @@ class MeetingStatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => switch (m.status) {
-        'done' => const Pill('Minutes ready', color: N.good),
-        'error' => const Pill('Failed · retry', color: N.bad),
-        'transcribing' => Pill('Transcribing ${m.chunks.length + 1}/${m.paths.length}', hot: true),
-        'summarizing' => const Pill('Writing minutes…', hot: true),
-        _ => const Pill('Waiting for AI'),
-      };
+    'done' => const Pill('Minutes ready', color: N.good),
+    'error' => const Pill('Failed · retry', color: N.bad),
+    'transcribing' => Pill('Transcribing ${m.chunks.length + 1}/${m.paths.length}', hot: true),
+    'summarizing' => const Pill('Writing minutes…', hot: true),
+    _ => const Pill('Waiting for AI'),
+  };
 }
 
 class RecordCard extends ConsumerWidget {
@@ -133,49 +145,74 @@ class RecordCard extends ConsumerWidget {
     final rec = ref.read(meetingRecorderProvider);
     return GlassCard(
       hero: true,
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Row(children: [
-          Container(
-            width: 12,
-            height: 12,
-            decoration: BoxDecoration(shape: BoxShape.circle, color: st.recording ? N.bad : N.muted.withValues(alpha: .4)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: st.recording ? N.bad : N.muted.withValues(alpha: .4),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(st.recording ? 'Recording' : 'Meeting recorder', style: N.h2),
+              const Spacer(),
+              if (st.recording && st.startedAt != null)
+                Text(fmtDuration(now.difference(st.startedAt!)), style: N.num(18, color: N.bad)),
+            ],
           ),
-          const SizedBox(width: 10),
-          Text(st.recording ? 'Recording' : 'Meeting recorder', style: N.h2),
-          const Spacer(),
-          if (st.recording && st.startedAt != null)
-            Text(fmtDuration(now.difference(st.startedAt!)), style: N.num(18, color: N.bad)),
-        ]),
-        const SizedBox(height: 8),
-        Text(
-          st.recording
-              ? 'Keeps recording with the screen off. Tap stop when the meeting ends.'
-              : 'Let everyone know you\'re recording before you start.',
-          style: N.small,
-        ),
-        const SizedBox(height: 14),
-        if (st.recording)
-          NButton('Stop & write minutes', kind: BtnKind.danger, icon: Icons.stop_rounded, expand: true, onTap: () async {
-            final id = await rec.stop();
-            if (id != null && context.mounted) context.push('/meeting/$id');
-          })
-        else
-          Row(children: [
-            Expanded(
-              child: NButton('Record', icon: Icons.fiber_manual_record_rounded, onTap: () async {
-                final err = await rec.start();
-                if (err != null && context.mounted) showSnack(context, err);
-              }),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: NButton('Upload audio', kind: BtnKind.raise, icon: Icons.upload_file_rounded, onTap: () async {
-                final id = await rec.upload();
+          const SizedBox(height: 8),
+          Text(
+            st.recording
+                ? 'Keeps recording with the screen off. Tap stop when the meeting ends.'
+                : 'Let everyone know you\'re recording before you start.',
+            style: N.small,
+          ),
+          const SizedBox(height: 14),
+          if (st.recording)
+            NButton(
+              'Stop & write minutes',
+              kind: BtnKind.danger,
+              icon: Icons.stop_rounded,
+              expand: true,
+              onTap: () async {
+                final id = await rec.stop();
                 if (id != null && context.mounted) context.push('/meeting/$id');
-              }),
+              },
+            )
+          else
+            Row(
+              children: [
+                Expanded(
+                  child: NButton(
+                    'Record',
+                    icon: Icons.fiber_manual_record_rounded,
+                    onTap: () async {
+                      final err = await rec.start();
+                      if (err != null && context.mounted) showSnack(context, err);
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: NButton(
+                    'Upload audio',
+                    kind: BtnKind.raise,
+                    icon: Icons.upload_file_rounded,
+                    onTap: () async {
+                      final id = await rec.upload();
+                      if (id != null && context.mounted) context.push('/meeting/$id');
+                    },
+                  ),
+                ),
+              ],
             ),
-          ]),
-      ]),
+        ],
+      ),
     );
   }
 }

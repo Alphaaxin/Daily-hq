@@ -16,9 +16,9 @@ class FocusController {
 
   FocusRepo get _repo => ref.read(focusRepoProvider);
 
-  Future<void> start(FocusKind kind, {int? profileId, int? ideaId}) async {
+  Future<void> start(FocusKind kind, {int? profileId, int? ideaId, int? learningId}) async {
     final clock = ref.read(clockProvider);
-    await _repo.start(clock, kind, profileId: profileId, ideaId: ideaId);
+    await _repo.start(clock, kind, profileId: profileId, ideaId: ideaId, learningId: learningId);
     await _sync();
     final s = ref.read(settingsProvider);
     if (kind == FocusKind.pomodoro && s.focusDnd && await NativeBridge.hasDndAccess()) {

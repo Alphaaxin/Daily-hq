@@ -16,6 +16,8 @@ import '../core/ai/ai_service.dart';
 import '../core/native/native_bridge.dart';
 import '../core/theme/widgets.dart';
 import '../features/focus/data/focus_controller.dart';
+import '../features/game/data/game_engine.dart';
+import '../features/gamification/data/life_score_provider.dart';
 import '../features/mail/data/mail_sender.dart';
 import '../features/meetings/data/meetings_repo.dart';
 import '../features/meetings/ui/meetings_list.dart';
@@ -79,6 +81,7 @@ class _NizamAppState extends ConsumerState<NizamApp> with WidgetsBindingObserver
       final l = await NativeBridge.takeLaunch();
       if (l != null) _onLaunch(l);
       _resumeWork();
+      unawaited(ref.read(gameEngineProvider).onResume());
     });
   }
 
@@ -130,6 +133,7 @@ class _NizamAppState extends ConsumerState<NizamApp> with WidgetsBindingObserver
       ref.read(reminderSyncProvider).schedule();
       ref.read(focusControllerProvider).resync();
       ref.read(googleJobsProvider).syncOnResume();
+      unawaited(ref.read(gameEngineProvider).onResume());
     }
   }
 
@@ -279,6 +283,9 @@ class _NizamAppState extends ConsumerState<NizamApp> with WidgetsBindingObserver
     }
 
     ref.listen(todayTasksProvider, gsync);
+    ref.listen(lifeScoreProvider, (_, s) {
+      if (widget.enablePlatform) ref.read(gameEngineProvider).scoreChanged(s);
+    });
     ref.listen(upcomingTasksProvider, gsync);
 
     return MaterialApp.router(

@@ -46,10 +46,11 @@ class ContactsRepo {
   final TargetsRepo targets;
 
   // People ------------------------------------------------------------------
-  Stream<List<PeopleData>> watchPeople() => (db.select(db.people)
-        ..where((p) => p.archived.equals(false))
-        ..orderBy([(p) => OrderingTerm.asc(p.name)]))
-      .watch();
+  Stream<List<PeopleData>> watchPeople() =>
+      (db.select(db.people)
+            ..where((p) => p.archived.equals(false))
+            ..orderBy([(p) => OrderingTerm.asc(p.name)]))
+          .watch();
 
   Future<PeopleData?> person(int id) => (db.select(db.people)..where((p) => p.id.equals(id))).getSingleOrNull();
 
@@ -81,10 +82,11 @@ class ContactsRepo {
       (db.update(db.people)..where((p) => p.id.equals(id))).write(const PeopleCompanion(archived: Value(true)));
 
   // Leads -------------------------------------------------------------------
-  Stream<List<Lead>> watchLeads() => (db.select(db.leads)
-        ..where((l) => l.archived.equals(false))
-        ..orderBy([(l) => OrderingTerm.desc(l.updatedAtUtc)]))
-      .watch();
+  Stream<List<Lead>> watchLeads() =>
+      (db.select(db.leads)
+            ..where((l) => l.archived.equals(false))
+            ..orderBy([(l) => OrderingTerm.desc(l.updatedAtUtc)]))
+          .watch();
 
   Future<Lead?> lead(int id) => (db.select(db.leads)..where((l) => l.id.equals(id))).getSingleOrNull();
 
@@ -131,12 +133,14 @@ class ContactsRepo {
   }
 
   Future<void> setStage(Lead l, String stage, DayClock clock) async {
-    await (db.update(db.leads)..where((x) => x.id.equals(l.id)))
-        .write(LeadsCompanion(stage: Value(stage), updatedAtUtc: Value(clock.nowUtc())));
+    await (db.update(
+      db.leads,
+    )..where((x) => x.id.equals(l.id))).write(LeadsCompanion(stage: Value(stage), updatedAtUtc: Value(clock.nowUtc())));
     if (stage == 'closed' && l.stage != 'closed') await xp.set(clock.today(), 'lead:closed:${l.id}', 50);
     // A reply closes pending "no reply yet" reminders.
     if (stage != 'new' && stage != 'contacted') {
-      await (db.update(db.followUps)..where((f) => f.leadId.equals(l.id) & f.origin.equals('mail') & f.doneAtUtc.isNull()))
+      await (db.update(db.followUps)
+            ..where((f) => f.leadId.equals(l.id) & f.origin.equals('mail') & f.doneAtUtc.isNull()))
           .write(FollowUpsCompanion(doneAtUtc: Value(clock.nowUtc())));
     }
   }
@@ -148,10 +152,11 @@ class ContactsRepo {
   }
 
   // Follow-ups --------------------------------------------------------------
-  Stream<List<FollowUp>> watchOpenFollowUps() => (db.select(db.followUps)
-        ..where((f) => f.doneAtUtc.isNull())
-        ..orderBy([(f) => OrderingTerm.asc(f.dueAtUtc)]))
-      .watch();
+  Stream<List<FollowUp>> watchOpenFollowUps() =>
+      (db.select(db.followUps)
+            ..where((f) => f.doneAtUtc.isNull())
+            ..orderBy([(f) => OrderingTerm.asc(f.dueAtUtc)]))
+          .watch();
 
   Future<List<FollowUp>> openFollowUps() => (db.select(db.followUps)..where((f) => f.doneAtUtc.isNull())).get();
 
@@ -162,23 +167,32 @@ class ContactsRepo {
     String note = '',
     String channel = 'any',
     String origin = 'manual',
-  }) =>
-      db.into(db.followUps).insert(FollowUpsCompanion.insert(
-            personId: Value(personId),
-            leadId: Value(leadId),
-            dueAtUtc: dueAtUtc,
-            note: Value(note),
-            channel: Value(channel),
-            origin: Value(origin),
-          ));
+  }) => db
+      .into(db.followUps)
+      .insert(
+        FollowUpsCompanion.insert(
+          personId: Value(personId),
+          leadId: Value(leadId),
+          dueAtUtc: dueAtUtc,
+          note: Value(note),
+          channel: Value(channel),
+          origin: Value(origin),
+        ),
+      );
 
   Future<void> completeFollowUp(int id, DayClock clock) async {
-    await (db.update(db.followUps)..where((f) => f.id.equals(id))).write(FollowUpsCompanion(doneAtUtc: Value(clock.nowUtc())));
+    final f = await followUp(id);
+    if (f == null || f.doneAtUtc != null) return;
+    await (db.update(
+      db.followUps,
+    )..where((x) => x.id.equals(id))).write(FollowUpsCompanion(doneAtUtc: Value(clock.nowUtc())));
     await xp.set(clock.today(), 'followup:$id', 5);
+    if (f.channel == 'call') await targets.bumpAuto('calls', clock.today(), 1);
   }
 
-  Future<void> snoozeFollowUp(FollowUp f, Duration by) =>
-      (db.update(db.followUps)..where((x) => x.id.equals(f.id))).write(FollowUpsCompanion(dueAtUtc: Value(f.dueAtUtc.add(by))));
+  Future<void> snoozeFollowUp(FollowUp f, Duration by) => (db.update(
+    db.followUps,
+  )..where((x) => x.id.equals(f.id))).write(FollowUpsCompanion(dueAtUtc: Value(f.dueAtUtc.add(by))));
 
   Future<void> deleteFollowUp(int id) => (db.delete(db.followUps)..where((f) => f.id.equals(id))).go();
 

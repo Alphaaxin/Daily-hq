@@ -4,9 +4,11 @@
 
 A gamified command center for one person: plan the day, track sleep, habits, water, prayer and tasks, and earn XP for all of it. It's an Android app built with Flutter that works fully offline and is installed directly as an APK (no Play Store).
 
-**Status: Phases 1 and 2 are done.**
+**Status: all four phases are built.**
 - **Phase 1:** app shell and design system, Today, Sleep & Wake, Tasks, work profiles, Habits, Water, Salah with offline prayer times, Mood, XP / levels / streaks, Rewards Shop, Quick Capture, reminders, Vivo phone setup.
 - **Phase 2:** Money (Quick Log from 6 places, dashboard, budgets), Build Hour, Daily Targets, Focus / Pomodoro and retainer time tracking (CSV / PDF), azan chimes, morning and evening routines, Google sign-in with 2-way Calendar sync and Drive backup.
+- **Phase 3:** Notes with templates and voice notes, meeting recorder with Gemini Minutes of Meeting, People (birthdays, follow-ups), Leads with the Google Maps share target, Mail Merge through Gmail.
+- **Phase 4:** daily Quests, Weekly Boss, a growing plant, streak shields, full 8-part Life Score, Year in Pixels, badges, Learning tracker, screen-time limits, smart nudges, weekly/monthly reviews and reports, Today and Record-meeting widgets.
 
 ---
 
@@ -57,7 +59,7 @@ If reminders ever stop, re-run Phone setup. OS updates sometimes reset these swi
 Nizam works fully offline without this. Do it once to switch on Calendar sync and Drive backups. You can do every step in Chrome on your phone at **console.cloud.google.com**.
 
 1. **Create a project.** Use the project picker → *New project* → name it `Nizam`.
-2. **Enable the APIs.** Go to *APIs & Services → Library* and enable **Google Calendar API** and **Google Drive API**. (Gmail API comes in Phase 3.)
+2. **Enable the APIs.** Go to *APIs & Services → Library* and enable **Google Calendar API**, **Google Drive API** and **Gmail API**.
 3. **Set up the consent screen.** Go to *APIs & Services → OAuth consent screen* (newer consoles call it *Google Auth Platform*):
    - User type **External**, app name `Nizam`, your email as support and developer contact.
    - Leave it in **Testing**. Under *Test users* / *Audience*, add **your own Gmail address**. Only listed test users can sign in.
@@ -75,7 +77,9 @@ What happens next:
 - **Backups** go to Drive's hidden app folder. They run right after **Good Night** and again at **10 AM** as a safety net, and the newest 14 are kept. Restore from the same screen.
 - If the 10 AM run can't sign in from the background, you'll get a *Tap to back up* notification instead.
 
-Gemini (for Phase 3) will also be pasted **inside the app** and stored in Android secure storage. `config/nizam.example.json` shows the shape of these settings. **Real keys are never committed.** `.gitignore` blocks `config/*.json`, `*.jks` and `key.properties`.
+Gmail is asked for separately, with the **Allow Gmail sending** button at the top of **Mail**. Only the *send* permission is requested.
+
+The Gemini key is also pasted **inside the app** (section 7) and stored in Android secure storage. `config/nizam.example.json` shows the shape of these settings. **Real keys are never committed.** `.gitignore` blocks `config/*.json`, `*.jks` and `key.properties`.
 
 ## 5. The ₹ Quick Log, everywhere
 
@@ -91,11 +95,32 @@ Gemini (for Phase 3) will also be pasted **inside the app** and stored in Androi
 - **Do Not Disturb during Pomodoro:** switch it on in Focus. The first time, Android asks you to allow Nizam under *Do Not Disturb access*.
 - **Retainer hours:** start a *Work timer* or add time manually, tagged with a profile. **Time log** totals each profile by week or month and exports **CSV / PDF** to WhatsApp, Gmail, Drive and so on.
 
+## 7. Gemini AI (meeting minutes, voice notes, drafting)
+
+1. In Chrome, open **aistudio.google.com/apikey**, sign in, and tap **Create API key**. The free tier is enough.
+2. In the app: **Me → AI (Gemini)** → paste the key → **Save** → **Test**. It should say *ready*.
+
+The key lives only in Android secure storage. Without it, everything else works; only transcription, minutes and *Tidy with AI* are off.
+
+## 8. Meetings, Leads and Mail
+
+- **Record a meeting:** Notes → Meetings → **Record**, the **Record meeting** home-screen widget, or Quick Capture. Allow the microphone the first time. Recording runs as a foreground service (keeps going with the screen off) and saves 10-minute chunks. On Stop, each chunk is transcribed and Minutes of Meeting are generated; if the phone is offline it resumes later. Audio and minutes are copied to Drive under *Solo Leveling/Meetings*. From the minutes, one tap creates tasks, a follow-up reminder and a recap e-mail draft.
+- **Leads from Google Maps:** in Maps open a business → **Share** → **Solo Leveling**. Name, address, phone and link are filled in for you. Each lead adds to the *leads* daily target.
+- **Mail Merge:** Mail → New campaign → pick a template (`{{name}}`, `{{business|there}}` and so on), import a CSV or choose leads, preview each mail, then send. Mails go out one by one with 25–45 s gaps, up to 300 a day (keeps your Gmail account safe). If the app is closed, the queue continues in the background.
+
+## 9. Game layer, insights and nudges
+
+- **Today → Quests card:** three daily quests, the weekly boss, your plant (it grows with active days and wilts after two idle days) and streak shields. A week with 5+ active days earns a shield (max 3), which covers one missed day automatically.
+- **Me:** Review (weekly / monthly), Report, Year in Pixels, Learning, Screen time, Nudges.
+- **Screen time:** Me → Screen time → allow *Usage access* for Solo Leveling, then set daily limits per app. Going over triggers a nudge.
+- **Nudges:** at most a few a day, never in quiet hours, each type can be turned off in Me → Nudges.
+- **Widgets:** long-press home screen → Widgets → **Solo Leveling → Today** (score, XP, streak, next prayer) and **Record meeting**.
+
 ---
 
 ## How it works
 
-- **Local-first:** SQLite through `drift`. Nothing leaves the phone in Phase 1.
+- **Local-first:** SQLite through `drift`. Data leaves the phone only for features you switch on: Google Calendar / Drive / Gmail and Gemini.
 - **Time:** every instant is stored in UTC and shown in Asia/Kolkata (configurable).
   - The app's "day" rolls over at **6 AM** (configurable), so a Good Night at 5:45 AM counts for the previous day.
   - Sleep is credited to the day you wake into.
@@ -105,7 +130,7 @@ Gemini (for Phase 3) will also be pasted **inside the app** and stored in Androi
 - **XP ledger:** one row per (day, source), so awarding is idempotent and un-ticking takes the XP back.
   - Level L starts at 50·L·(L−1) XP: Rookie → Starter → Builder → Hustler → Operator → Strategist → Architect → Closer → Founder → Legend.
   - Redeeming a reward spends your balance, never your level.
-- **Life Score v1 (0–100):** tasks 25, habits 20, Salah 20, sleep 20, water 15.
+- **Life Score (0–100):** tasks 15, habits 12, daily targets 13, Salah 15, sleep 13, water 10, Build Hour 12, money discipline 10.
   - Modules you switch off, and an empty task list, drop out and the remaining weights are rescaled.
 - **Reminders:** exact alarms via `flutter_local_notifications`, re-planned whenever state changes.
   - Water: every 90 min after your last glass while you're awake; stops at the goal, at Good Night and during quiet hours.
@@ -128,7 +153,7 @@ test/
   widget/           screens render with seeded data
 ```
 
-Each module (Sleep, Tasks, Habits, Water, Salah, Mood, Rewards) can be switched off in **Me → Modules**.
+Each module (Sleep, Tasks, Habits, Water, Salah, Mood, Rewards, Money, Notes, Meetings, People, Leads, Mail, Quests, Learning, Screen time, Nudges…) can be switched off in **Me → Modules**.
 
 ### Developing
 
@@ -140,17 +165,8 @@ NIZAM_SHOTS=/tmp/shots flutter test test/widget            # optional: phone-siz
 flutter build apk --release
 ```
 
-CI uses Flutter **3.35.7**. The `drift_schemas/` folder holds a snapshot of each database version; `test/data/migration_test.dart` upgrades a real v1 database to v2 to prove migrations keep your data. The prayer-time tests check `adhan` against an independent implementation of the solar formulas, to within 2½ minutes.
+CI uses Flutter **3.35.7**. The `drift_schemas/` folder holds a snapshot of each database version; `test/data/migration_test.dart` upgrades real v1 and v2 databases to the latest schema (v3) to prove migrations keep your data. The prayer-time tests check `adhan` against an independent implementation of the solar formulas, to within 2½ minutes.
 
-## Roadmap
+## Not yet verified on a real phone
 
-- **Phase 2:** done (see Status above).
-- **Phase 3:**
-  - Notes with templates and voice capture.
-  - Meeting recorder that produces Minutes of Meeting with Gemini.
-  - People & Leads, including the Maps share target.
-  - Mail Merge via Gmail.
-- **Phase 4:**
-  - Quests, Weekly Boss, avatar/plant, streak shields, full Life Score and Year in Pixels.
-  - Learning tracker, screen time and smart nudges.
-  - Reports and the remaining widgets.
+CI can't exercise these, so check them after installing: recording with the screen off, Gemini calls, Gmail sending, Google sign-in, home widgets, the Quick Settings tile and bubble, usage stats, and background jobs on Vivo's battery manager.

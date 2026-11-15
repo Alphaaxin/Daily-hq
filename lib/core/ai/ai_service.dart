@@ -38,8 +38,12 @@ class AiService {
   }
 
   /// Speech → English text (voice notes, meeting chunks).
-  Future<String> transcribe(File audio, {String prompt = 'Transcribe this audio. Write it in English (translate '
-      'Hindi, Urdu or Telugu if spoken). Return only the text.'}) async {
+  Future<String> transcribe(
+    File audio, {
+    String prompt =
+        'Transcribe this audio. Write it in English (translate '
+        'Hindi, Urdu or Telugu if spoken). Return only the text.',
+  }) async {
     final c = await client();
     try {
       final part = await c.audioPart(audio);
@@ -71,5 +75,6 @@ class AiService {
 
 final aiProvider = Provider((ref) => AiService(ref));
 
-const aiStyle = 'You help Habeeb, a digital marketer in Hyderabad (sales, marketing, research; Zillvox and '
+const aiStyle =
+    'You help Habeeb, a digital marketer in Hyderabad (sales, marketing, research; Zillvox and '
     'Triumphs of Talent). Write clearly and warmly in simple English. No hype, no emojis unless asked.';

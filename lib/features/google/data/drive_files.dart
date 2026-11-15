@@ -18,19 +18,22 @@ class DriveFiles {
   }
 
   Future<String> _folder(gdrive.DriveApi api, String name, String? parent) async {
-    final q = "mimeType='application/vnd.google-apps.folder' and name='${name.replaceAll("'", "\\'")}' and trashed=false"
+    final q =
+        "mimeType='application/vnd.google-apps.folder' and name='${name.replaceAll("'", "\\'")}' and trashed=false"
         "${parent == null ? '' : " and '$parent' in parents"}";
     final found = await api.files.list(q: q, spaces: 'drive', $fields: 'files(id)');
     if (found.files?.isNotEmpty ?? false) return found.files!.first.id!;
-    final f = await api.files.create(gdrive.File(
-      name: name,
-      mimeType: 'application/vnd.google-apps.folder',
-      parents: parent == null ? null : [parent],
-    ));
+    final f = await api.files.create(
+      gdrive.File(
+        name: name,
+        mimeType: 'application/vnd.google-apps.folder',
+        parents: parent == null ? null : [parent],
+      ),
+    );
     return f.id!;
   }
 
-  /// Uploads files to "Solo Leveling/Meetings/<subfolder>". Returns Drive ids,
+  /// Uploads files to "Solo Leveling/Meetings/`subfolder`". Returns Drive ids,
   /// or null when not signed in.
   Future<List<String>?> uploadMeeting(String subfolder, List<File> files) async {
     final api = await _api();

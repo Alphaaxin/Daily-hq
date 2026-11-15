@@ -13,6 +13,7 @@ import '../features/onboarding/ui/setup_screen.dart';
 import '../features/targets/ui/targets_section.dart';
 import '../features/tasks/ui/tasks_screen.dart';
 import '../features/today/ui/today_screen.dart';
+import '../features/insights/ui/insights_screens.dart';
 import '../features/leads/ui/leads_screen.dart';
 import '../features/mail/ui/mail_screen.dart';
 import '../features/me/ui/ai_screen.dart';
@@ -83,6 +84,12 @@ GoRouter buildRouter(String initialLocation) => GoRouter(
     ),
     GoRoute(path: '/mail', parentNavigatorKey: rootNavKey, builder: (_, _) => const MailScreen()),
     GoRoute(path: '/ai', parentNavigatorKey: rootNavKey, builder: (_, _) => const AiScreen()),
+    GoRoute(path: '/review', parentNavigatorKey: rootNavKey, builder: (_, _) => const ReviewScreen()),
+    GoRoute(path: '/report', parentNavigatorKey: rootNavKey, builder: (_, _) => const ReportScreen()),
+    GoRoute(path: '/pixels', parentNavigatorKey: rootNavKey, builder: (_, _) => const YearInPixelsScreen()),
+    GoRoute(path: '/learning', parentNavigatorKey: rootNavKey, builder: (_, _) => const LearningScreen()),
+    GoRoute(path: '/screentime', parentNavigatorKey: rootNavKey, builder: (_, _) => const ScreenTimeScreen()),
+    GoRoute(path: '/nudges', parentNavigatorKey: rootNavKey, builder: (_, _) => const NudgeSettingsScreen()),
     GoRoute(path: '/tasks', parentNavigatorKey: rootNavKey, builder: (_, _) => const TasksScreen()),
     GoRoute(path: '/setup', parentNavigatorKey: rootNavKey, builder: (_, _) => const SetupScreen()),
     GoRoute(path: '/welcome', parentNavigatorKey: rootNavKey, builder: (_, _) => const SetupScreen(firstRun: true)),

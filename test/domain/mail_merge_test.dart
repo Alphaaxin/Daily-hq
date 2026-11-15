@@ -6,7 +6,11 @@ import 'package:nizam/features/mail/domain/mail_merge.dart';
 void main() {
   group('placeholders', () {
     test('finds unique names, case-insensitive', () {
-      expect(placeholders('Hi {{Name}}, {{ business }} and {{name}} again {{college}}'), ['name', 'business', 'college']);
+      expect(placeholders('Hi {{Name}}, {{ business }} and {{name}} again {{college}}'), [
+        'name',
+        'business',
+        'college',
+      ]);
       expect(placeholders('no tags'), isEmpty);
     });
 
@@ -30,8 +34,10 @@ void main() {
 
   group('CSV', () {
     test('headers, quotes, commas and newlines in cells', () {
-      final rows = parseCsv('﻿Name,Email,Business\r\n"Sharma, Rahul",rahul@x.com,"Chai ""Point"""\n'
-          'Ayesha,ayesha@y.in,"Line1\nLine2"\n\n');
+      final rows = parseCsv(
+        '﻿Name,Email,Business\r\n"Sharma, Rahul",rahul@x.com,"Chai ""Point"""\n'
+        'Ayesha,ayesha@y.in,"Line1\nLine2"\n\n',
+      );
       expect(rows, hasLength(2));
       expect(rows[0], {'name': 'Sharma, Rahul', 'email': 'rahul@x.com', 'business': 'Chai "Point"'});
       expect(rows[1]['business'], 'Line1\nLine2');
@@ -61,7 +67,9 @@ void main() {
     });
 
     test('ASCII subject stays readable', () {
-      final msg = utf8.decode(base64Url.decode(base64Url.normalize(gmailRaw(to: 'a@b.co', subject: 'Hello', body: 'x'))));
+      final msg = utf8.decode(
+        base64Url.decode(base64Url.normalize(gmailRaw(to: 'a@b.co', subject: 'Hello', body: 'x'))),
+      );
       expect(msg, contains('Subject: Hello'));
     });
   });

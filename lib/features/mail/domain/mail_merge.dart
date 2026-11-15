@@ -85,8 +85,7 @@ List<Map<String, String>> parseCsv(String input) {
   if (clean.isEmpty) return const [];
   final header = clean.first.map((h) => h.trim().toLowerCase().replaceFirst('﻿', '')).toList();
   return [
-    for (final r in clean.skip(1))
-      {for (var i = 0; i < header.length; i++) header[i]: i < r.length ? r[i].trim() : ''},
+    for (final r in clean.skip(1)) {for (var i = 0; i < header.length; i++) header[i]: i < r.length ? r[i].trim() : ''},
   ];
 }
 

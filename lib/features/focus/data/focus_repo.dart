@@ -50,7 +50,7 @@ class FocusRepo {
           .watch();
 
   /// Starts a session; any running one is stopped first.
-  Future<int> start(DayClock clock, FocusKind kind, {int? profileId, int? ideaId}) async {
+  Future<int> start(DayClock clock, FocusKind kind, {int? profileId, int? ideaId, int? learningId}) async {
     final cur = await running();
     if (cur != null) await stop(clock, cur);
     return db

@@ -22,9 +22,11 @@ class GmailService {
     if (c == null) throw GmailNotReady();
     try {
       final msg = await gmail.GmailApi(c).users.messages.send(
-            gmail.Message(raw: gmailRaw(to: to, toName: toName, subject: subject, body: body)),
-            'me',
-          );
+        gmail.Message(
+          raw: gmailRaw(to: to, toName: toName, subject: subject, body: body),
+        ),
+        'me',
+      );
       final day = ref.read(todayProvider);
       await ref.read(targetsRepoProvider).bumpAuto('emails', day, 1);
       return msg.id ?? '';
@@ -39,10 +41,11 @@ class GmailService {
     final clock = ref.read(clockProvider);
     final start = clock.dayStartUtc(clock.today());
     final c = db.mailSends.id.count();
-    final r = await (db.selectOnly(db.mailSends)
-          ..addColumns([c])
-          ..where(db.mailSends.status.equals('sent') & db.mailSends.sentAtUtc.isBiggerOrEqualValue(start)))
-        .getSingle();
+    final r =
+        await (db.selectOnly(db.mailSends)
+              ..addColumns([c])
+              ..where(db.mailSends.status.equals('sent') & db.mailSends.sentAtUtc.isBiggerOrEqualValue(start)))
+            .getSingle();
     return r.read(c) ?? 0;
   }
 }

@@ -272,10 +272,13 @@ class Meetings extends Table {
   TextColumn get title => text().withDefault(const Constant('Meeting'))();
   DateTimeColumn get startedAtUtc => dateTime()();
   IntColumn get durationSec => integer().withDefault(const Constant(0))();
+
   /// recording | pending | transcribing | summarizing | done | error
   TextColumn get status => text().withDefault(const Constant('pending'))();
+
   /// JSON list of local audio file paths (chunks, in order).
   TextColumn get audioPaths => text().withDefault(const Constant('[]'))();
+
   /// JSON list of chunk transcripts already done (for resume / retry).
   TextColumn get chunkTranscripts => text().withDefault(const Constant('[]'))();
   TextColumn get transcript => text().withDefault(const Constant(''))();
@@ -293,6 +296,7 @@ class People extends Table {
   TextColumn get name => text().withLength(min: 1, max: 80)();
   TextColumn get phone => text().withDefault(const Constant(''))();
   TextColumn get email => text().withDefault(const Constant(''))();
+
   /// MM-DD or YYYY-MM-DD.
   TextColumn get birthday => text().nullable()();
   TextColumn get notes => text().withDefault(const Constant(''))();
@@ -312,6 +316,7 @@ class Leads extends Table {
   TextColumn get source => text().withDefault(const Constant(''))();
   TextColumn get notes => text().withDefault(const Constant(''))();
   IntColumn get profileId => integer().nullable().references(Profiles, #id)();
+
   /// new | contacted | replied | interested | closed | lost
   TextColumn get stage => text().withDefault(const Constant('new'))();
   TextColumn get day => text()();
@@ -327,6 +332,7 @@ class FollowUps extends Table {
   IntColumn get leadId => integer().nullable().references(Leads, #id)();
   DateTimeColumn get dueAtUtc => dateTime()();
   TextColumn get note => text().withDefault(const Constant(''))();
+
   /// call | whatsapp | email | any
   TextColumn get channel => text().withDefault(const Constant('any'))();
   DateTimeColumn get doneAtUtc => dateTime().nullable()();
@@ -350,6 +356,7 @@ class MailSends extends Table {
   TextColumn get body => text()();
   IntColumn get leadId => integer().nullable()();
   IntColumn get personId => integer().nullable()();
+
   /// queued | sent | failed | cancelled
   TextColumn get status => text().withDefault(const Constant('queued'))();
   DateTimeColumn get scheduledAtUtc => dateTime()();
@@ -378,6 +385,7 @@ class DailyQuests extends Table {
 class Bosses extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get title => text()();
+
   /// buildHours | leads | emails | pomodoros | waterDays | salahDays | tasks
   TextColumn get metric => text()();
   IntColumn get goal => integer()();
@@ -618,6 +626,20 @@ class AppDb extends _$AppDb {
 
   Future<void> _seedV3() async {
     final now = DateTime.now().toUtc();
+    final zillvox = await (select(profiles)..where((p) => p.name.equals('Zillvox'))).getSingleOrNull();
+    final n = (await select(targets).get()).length;
+    await batch((b) {
+      b.insertAll(targets, [
+        TargetsCompanion.insert(
+          name: 'Sales calls',
+          goal: 10,
+          profileId: Value(zillvox?.id),
+          autoSource: const Value('calls'),
+          sort: Value(n),
+        ),
+        TargetsCompanion.insert(name: 'Meetings booked', goal: 1, profileId: Value(zillvox?.id), sort: Value(n + 1)),
+      ]);
+    });
     await batch((b) {
       b.insertAll(quests, [
         for (final (q, xp) in [
@@ -649,14 +671,21 @@ class AppDb extends _$AppDb {
         MailTemplatesCompanion.insert(
           name: 'Intro: AI marketing help',
           subject: const Value('Quick idea for {{business}}'),
-          body: const Value('Hi {{name}},\n\nI came across {{business}} and had a quick idea to bring you more '
-              'customers using simple AI tools and better follow-ups.\n\nWould a 15-minute call this week work?\n\n'
-              'Best,\nHabeeb'),
+          body: const Value(
+            'Hi {{name}},\n\nI came across {{business}} and had a quick idea to bring you more '
+            'customers using simple AI tools and better follow-ups.\n\nWould a 15-minute call this week work?\n\n'
+            'Best,\nHabeeb',
+          ),
           updatedAtUtc: now,
         ),
       ]);
       b.insertAll(learningItems, [
-        LearningItemsCompanion.insert(title: 'CS semester subjects', kind: const Value('course'), total: const Value(40), unit: const Value('topics')),
+        LearningItemsCompanion.insert(
+          title: 'CS semester subjects',
+          kind: const Value('course'),
+          total: const Value(40),
+          unit: const Value('topics'),
+        ),
       ]);
     });
   }

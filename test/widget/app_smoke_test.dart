@@ -319,4 +319,21 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     await tester.runAsync(db.close);
   });
+
+  for (final (route, name, h) in [
+    ('/notes', 'notes', 1400.0),
+    ('/leads', 'leads', 1400.0),
+    ('/people', 'people', 1400.0),
+    ('/mail', 'mail', 1400.0),
+    ('/review', 'review', 1900.0),
+    ('/report', 'report', 2600.0),
+    ('/pixels', 'pixels', 1500.0),
+    ('/learning', 'learning', 1000.0),
+    ('/nudges', 'nudges', 1800.0),
+    ('/ai', 'ai', 1000.0),
+  ]) {
+    testWidgets('$route renders', (tester) async {
+      await run(tester, route, name, height: shotsDir == null ? 915 : h);
+    });
+  }
 }

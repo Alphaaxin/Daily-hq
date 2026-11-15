@@ -50,7 +50,10 @@ class LeadsScreen extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => context.push('/mail'),
-            child: const Text('Mail merge', style: TextStyle(color: N.gold, fontWeight: FontWeight.w700)),
+            child: const Text(
+              'Mail merge',
+              style: TextStyle(color: N.gold, fontWeight: FontWeight.w700),
+            ),
           ),
           IconButton(
             tooltip: 'Add lead',
@@ -64,61 +67,85 @@ class LeadsScreen extends ConsumerWidget {
         children: [
           GlassCard(
             hero: true,
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              Row(children: [
-                Expanded(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Eyebrow('Pipeline'),
-                    const SizedBox(height: 4),
-                    Text('${all.length} leads · $addedToday today', style: N.h2),
-                  ]),
-                ),
-                NButton('Add', icon: Icons.add_rounded, onTap: () => context.push('/leads/new')),
-              ]),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 64,
-                child: Row(children: [
-                  for (final st in leadStages.where((x) => x != 'lost'))
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
                     Expanded(
-                      child: GestureDetector(
-                        onTap: () => ref.read(_leadFilterProvider.notifier).stage(stage == st ? null : st),
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 2),
-                          decoration: BoxDecoration(
-                            color: stage == st ? N.goldSoft : N.raise,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: stage == st ? N.gold : N.line),
-                          ),
-                          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                            Text('${counts[st]}', style: N.num(18)),
-                            Text(leadStageLabels[st]!, style: N.small.copyWith(fontSize: 10)),
-                          ]),
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Eyebrow('Pipeline'),
+                          const SizedBox(height: 4),
+                          Text('${all.length} leads · $addedToday today', style: N.h2),
+                        ],
                       ),
                     ),
-                ]),
-              ),
-              const SizedBox(height: 8),
-              Text('Tip: in Google Maps, tap Share on a business → Solo Leveling to add it here.',
-                  style: N.small.copyWith(fontSize: 12)),
-            ]),
+                    NButton('Add', icon: Icons.add_rounded, onTap: () => context.push('/leads/new')),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 64,
+                  child: Row(
+                    children: [
+                      for (final st in leadStages.where((x) => x != 'lost'))
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => ref.read(_leadFilterProvider.notifier).stage(stage == st ? null : st),
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 2),
+                              decoration: BoxDecoration(
+                                color: stage == st ? N.goldSoft : N.raise,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: stage == st ? N.gold : N.line),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text('${counts[st]}', style: N.num(18)),
+                                  Text(leadStageLabels[st]!, style: N.small.copyWith(fontSize: 10)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Tip: in Google Maps, tap Share on a business → Solo Leveling to add it here.',
+                  style: N.small.copyWith(fontSize: 12),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: N.gap),
           TextField(
-            decoration: const InputDecoration(hintText: 'Search leads', prefixIcon: Icon(Icons.search_rounded, color: N.muted)),
+            decoration: const InputDecoration(
+              hintText: 'Search leads',
+              prefixIcon: Icon(Icons.search_rounded, color: N.muted),
+            ),
             onChanged: ref.read(_leadFilterProvider.notifier).search,
           ),
           const SizedBox(height: 8),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            child: Row(children: [
-              NChip('All profiles', on: profile == null, onTap: () => ref.read(_leadFilterProvider.notifier).profile(null)),
-              for (final p in profiles) ...[
-                const SizedBox(width: 6),
-                NChip(p.name, on: profile == p.id, onTap: () => ref.read(_leadFilterProvider.notifier).profile(p.id)),
+            child: Row(
+              children: [
+                NChip(
+                  'All profiles',
+                  on: profile == null,
+                  onTap: () => ref.read(_leadFilterProvider.notifier).profile(null),
+                ),
+                for (final p in profiles) ...[
+                  const SizedBox(width: 6),
+                  NChip(p.name, on: profile == p.id, onTap: () => ref.read(_leadFilterProvider.notifier).profile(p.id)),
+                ],
               ],
-            ]),
+            ),
           ),
           const SizedBox(height: N.gap),
           if (shown.isEmpty) const EmptyNote('No leads here yet.'),
@@ -142,41 +169,72 @@ class _LeadTile extends ConsumerWidget {
         padding: const EdgeInsets.fromLTRB(14, 12, 8, 8),
         child: InkWell(
           onTap: () => context.push('/leads/${l.id}'),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Row(children: [
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(l.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                  Text(
-                    [if (l.business.isNotEmpty) l.business, if (l.location.isNotEmpty) l.location].join(' · '),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: N.small.copyWith(fontSize: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(l.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                        Text(
+                          [if (l.business.isNotEmpty) l.business, if (l.location.isNotEmpty) l.location].join(' · '),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: N.small.copyWith(fontSize: 12),
+                        ),
+                      ],
+                    ),
                   ),
-                ]),
+                  PopupMenuButton<String>(
+                    color: N.solid,
+                    initialValue: l.stage,
+                    onSelected: (s) => ref.read(contactsRepoProvider).setStage(l, s, clock),
+                    itemBuilder: (_) => [
+                      for (final s in leadStages) PopupMenuItem(value: s, child: Text(leadStageLabels[s]!)),
+                    ],
+                    child: Pill(
+                      leadStageLabels[l.stage] ?? l.stage,
+                      hot: l.stage == 'interested' || l.stage == 'closed',
+                    ),
+                  ),
+                ],
               ),
-              PopupMenuButton<String>(
-                color: N.solid,
-                initialValue: l.stage,
-                onSelected: (s) => ref.read(contactsRepoProvider).setStage(l, s, clock),
-                itemBuilder: (_) => [for (final s in leadStages) PopupMenuItem(value: s, child: Text(leadStageLabels[s]!))],
-                child: Pill(leadStageLabels[l.stage] ?? l.stage, hot: l.stage == 'interested' || l.stage == 'closed'),
+              Row(
+                children: [
+                  if (l.phone.isNotEmpty)
+                    IconButton(
+                      icon: const Icon(Icons.call_outlined, size: 20, color: N.good),
+                      onPressed: () => callNumber(l.phone),
+                    ),
+                  if (l.phone.isNotEmpty)
+                    IconButton(
+                      icon: const Icon(Icons.chat_outlined, size: 20, color: N.good),
+                      onPressed: () => whatsapp(l.phone),
+                    ),
+                  if (l.email.isNotEmpty)
+                    IconButton(
+                      icon: const Icon(Icons.mail_outline_rounded, size: 20, color: N.water),
+                      onPressed: () => emailTo(l.email),
+                    ),
+                  if (l.mapsUrl.isNotEmpty)
+                    IconButton(
+                      icon: const Icon(Icons.map_outlined, size: 20, color: N.muted),
+                      onPressed: () => openUrl(l.mapsUrl),
+                    ),
+                  const Spacer(),
+                  Text(fmtDayKey(l.day), style: N.small.copyWith(fontSize: 11)),
+                  IconButton(
+                    tooltip: 'Remind me',
+                    icon: const Icon(Icons.alarm_add_outlined, size: 20, color: N.gold),
+                    onPressed: () => showFollowUpSheet(context, leadId: l.id, label: l.name),
+                  ),
+                ],
               ),
-            ]),
-            Row(children: [
-              if (l.phone.isNotEmpty) IconButton(icon: const Icon(Icons.call_outlined, size: 20, color: N.good), onPressed: () => callNumber(l.phone)),
-              if (l.phone.isNotEmpty) IconButton(icon: const Icon(Icons.chat_outlined, size: 20, color: N.good), onPressed: () => whatsapp(l.phone)),
-              if (l.email.isNotEmpty) IconButton(icon: const Icon(Icons.mail_outline_rounded, size: 20, color: N.water), onPressed: () => emailTo(l.email)),
-              if (l.mapsUrl.isNotEmpty) IconButton(icon: const Icon(Icons.map_outlined, size: 20, color: N.muted), onPressed: () => openUrl(l.mapsUrl)),
-              const Spacer(),
-              Text(fmtDayKey(l.day), style: N.small.copyWith(fontSize: 11)),
-              IconButton(
-                tooltip: 'Remind me',
-                icon: const Icon(Icons.alarm_add_outlined, size: 20, color: N.gold),
-                onPressed: () => showFollowUpSheet(context, leadId: l.id, label: l.name),
-              ),
-            ]),
-          ]),
+            ],
+          ),
         ),
       ),
     );
@@ -243,7 +301,9 @@ class _LeadEditorState extends ConsumerState<LeadEditor> {
       showSnack(context, 'Give the lead a name');
       return;
     }
-    await ref.read(contactsRepoProvider).saveLead(
+    await ref
+        .read(contactsRepoProvider)
+        .saveLead(
           id: _lead?.id,
           name: _name.text,
           business: _business.text,
@@ -267,9 +327,14 @@ class _LeadEditorState extends ConsumerState<LeadEditor> {
   Widget build(BuildContext context) {
     final profiles = ref.watch(profilesProvider).value ?? const <Profile>[];
     Widget f(TextEditingController c, String hint, {TextInputType? kb, int lines = 1}) => Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: TextField(controller: c, keyboardType: kb, maxLines: lines, decoration: InputDecoration(labelText: hint)),
-        );
+      padding: const EdgeInsets.only(bottom: 8),
+      child: TextField(
+        controller: c,
+        keyboardType: kb,
+        maxLines: lines,
+        decoration: InputDecoration(labelText: hint),
+      ),
+    );
     return Scaffold(
       appBar: AppBar(
         backgroundColor: N.bg,
@@ -300,16 +365,26 @@ class _LeadEditorState extends ConsumerState<LeadEditor> {
           const SizedBox(height: 4),
           const Eyebrow('Stage'),
           const SizedBox(height: 6),
-          Wrap(spacing: 6, runSpacing: 6, children: [
-            for (final s in leadStages) NChip(leadStageLabels[s]!, on: _stage == s, onTap: () => setState(() => _stage = s)),
-          ]),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final s in leadStages)
+                NChip(leadStageLabels[s]!, on: _stage == s, onTap: () => setState(() => _stage = s)),
+            ],
+          ),
           const SizedBox(height: 12),
           const Eyebrow('Work profile'),
           const SizedBox(height: 6),
-          Wrap(spacing: 6, runSpacing: 6, children: [
-            NChip('None', on: _profile == null, onTap: () => setState(() => _profile = null)),
-            for (final p in profiles) NChip(p.name, on: _profile == p.id, onTap: () => setState(() => _profile = p.id)),
-          ]),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              NChip('None', on: _profile == null, onTap: () => setState(() => _profile = null)),
+              for (final p in profiles)
+                NChip(p.name, on: _profile == p.id, onTap: () => setState(() => _profile = p.id)),
+            ],
+          ),
           const SizedBox(height: 20),
           NButton(_lead == null ? 'Add lead' : 'Save', expand: true, onTap: _save),
         ],

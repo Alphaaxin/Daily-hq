@@ -58,7 +58,9 @@ class _NoteEditorState extends ConsumerState<NoteEditor> {
 
   Future<void> _save({bool quiet = false}) async {
     if (_title.text.trim().isEmpty && _body.text.trim() == (noteTemplates[_template] ?? '').trim()) return;
-    _id = await ref.read(notesRepoProvider).save(
+    _id = await ref
+        .read(notesRepoProvider)
+        .save(
           id: _id,
           title: _title.text,
           body: _body.text,
@@ -76,7 +78,9 @@ class _NoteEditorState extends ConsumerState<NoteEditor> {
     setState(() => _aiBusy = true);
     try {
       final tpl = noteTemplates[_template] ?? '';
-      final out = await ref.read(aiProvider).write(
+      final out = await ref
+          .read(aiProvider)
+          .write(
             'Rewrite this messy note into a clean "$_template" note. ${tpl.isEmpty ? '' : 'Use this structure:\n$tpl\n'}'
             'Keep every fact, fix grammar, use short bullet points, English only. Return only the note body.\n\n'
             'TITLE: ${_title.text}\nNOTE:\n${_body.text}',
@@ -87,10 +91,12 @@ class _NoteEditorState extends ConsumerState<NoteEditor> {
       if (mounted) {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(
-            content: const Text('Tidied with AI', style: TextStyle(color: N.ink)),
-            action: SnackBarAction(label: 'Undo', textColor: N.gold, onPressed: () => _body.text = old),
-          ));
+          ..showSnackBar(
+            SnackBar(
+              content: const Text('Tidied with AI', style: TextStyle(color: N.ink)),
+              action: SnackBarAction(label: 'Undo', textColor: N.gold, onPressed: () => _body.text = old),
+            ),
+          );
       }
     } catch (e) {
       if (mounted) showSnack(context, '$e');
@@ -151,7 +157,12 @@ class _NoteEditorState extends ConsumerState<NoteEditor> {
           TextField(
             controller: _title,
             style: N.h1.copyWith(fontSize: 22),
-            decoration: const InputDecoration(hintText: 'Title', filled: false, border: InputBorder.none, enabledBorder: InputBorder.none),
+            decoration: const InputDecoration(
+              hintText: 'Title',
+              filled: false,
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+            ),
           ),
           TextField(
             controller: _body,
@@ -162,26 +173,51 @@ class _NoteEditorState extends ConsumerState<NoteEditor> {
             decoration: const InputDecoration(hintText: 'Write anything…'),
           ),
           const SizedBox(height: 12),
-          TextField(controller: _tags, decoration: const InputDecoration(hintText: 'Tags, comma separated')),
+          TextField(
+            controller: _tags,
+            decoration: const InputDecoration(hintText: 'Tags, comma separated'),
+          ),
           const SizedBox(height: 12),
-          Wrap(spacing: 6, runSpacing: 6, children: [
-            for (final k in noteTemplates.keys) NChip(k, on: _template == k, onTap: () => setState(() => _template = k)),
-          ]),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final k in noteTemplates.keys)
+                NChip(k, on: _template == k, onTap: () => setState(() => _template = k)),
+            ],
+          ),
           const SizedBox(height: 10),
-          Wrap(spacing: 6, runSpacing: 6, children: [
-            NChip('No profile', on: _profile == null, onTap: () => setState(() => _profile = null)),
-            for (final p in profiles)
-              NChip(p.name, on: _profile == p.id, color: Color(p.color), onTap: () => setState(() => _profile = p.id)),
-          ]),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              NChip('No profile', on: _profile == null, onTap: () => setState(() => _profile = null)),
+              for (final p in profiles)
+                NChip(
+                  p.name,
+                  on: _profile == p.id,
+                  color: Color(p.color),
+                  onTap: () => setState(() => _profile = p.id),
+                ),
+            ],
+          ),
           const SizedBox(height: 16),
-          Row(children: [
-            Expanded(
-              child: NButton(_aiBusy ? 'Tidying…' : 'Tidy with AI',
-                  kind: BtnKind.raise, icon: Icons.auto_awesome_outlined, onTap: _aiBusy ? null : _tidy),
-            ),
-            const SizedBox(width: 8),
-            Expanded(child: NButton('Save', icon: Icons.check_rounded, onTap: _save)),
-          ]),
+          Row(
+            children: [
+              Expanded(
+                child: NButton(
+                  _aiBusy ? 'Tidying…' : 'Tidy with AI',
+                  kind: BtnKind.raise,
+                  icon: Icons.auto_awesome_outlined,
+                  onTap: _aiBusy ? null : _tidy,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: NButton('Save', icon: Icons.check_rounded, onTap: _save),
+              ),
+            ],
+          ),
           if (_template == 'Product idea') ...[
             const SizedBox(height: 10),
             Text('Product ideas also appear in Build Hour\'s idea list.', style: N.small.copyWith(fontSize: 12)),

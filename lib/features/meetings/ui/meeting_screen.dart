@@ -49,15 +49,18 @@ class _MeetingScreenState extends ConsumerState<MeetingScreen> {
         ? const SizedBox.shrink()
         : Padding(
             padding: const EdgeInsets.only(top: 14),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Eyebrow(title),
-              const SizedBox(height: 6),
-              for (final i in items)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Text('•  $i', style: const TextStyle(fontSize: 14, height: 1.4)),
-                ),
-            ]),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Eyebrow(title),
+                const SizedBox(height: 6),
+                for (final i in items)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text('•  $i', style: const TextStyle(fontSize: 14, height: 1.4)),
+                  ),
+              ],
+            ),
           );
 
     return Scaffold(
@@ -80,9 +83,15 @@ class _MeetingScreenState extends ConsumerState<MeetingScreen> {
                 context: context,
                 builder: (ctx) => AlertDialog(
                   title: Text('Delete this meeting?', style: N.h2),
-                  content: Text('The audio on this phone is deleted. The note and any Drive copy stay.', style: N.small),
+                  content: Text(
+                    'The audio on this phone is deleted. The note and any Drive copy stay.',
+                    style: N.small,
+                  ),
                   actions: [
-                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel', style: TextStyle(color: N.muted))),
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Cancel', style: TextStyle(color: N.muted)),
+                    ),
                     NButton('Delete', kind: BtnKind.danger, onTap: () => Navigator.pop(ctx, true)),
                   ],
                 ),
@@ -100,93 +109,118 @@ class _MeetingScreenState extends ConsumerState<MeetingScreen> {
         children: [
           GlassCard(
             hero: true,
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              Row(children: [
-                Expanded(
-                  child: GestureDetector(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () async {
+                          final v = await askText(context, 'Meeting title', m.title);
+                          if (v != null && v.trim().isNotEmpty) await repo.rename(m.id, v);
+                        },
+                        child: Text(m.title, style: N.h1.copyWith(fontSize: 22)),
+                      ),
+                    ),
+                    MeetingStatusPill(m),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${fmtDayKey(clock.calendarDateFor(m.startedAtUtc))}, ${fmtTime(clock, m.startedAtUtc)}',
+                  style: N.small,
+                ),
+                if (m.status == 'error') ...[
+                  const SizedBox(height: 10),
+                  Text(m.error ?? 'Something went wrong', style: N.small.copyWith(color: N.bad)),
+                  const SizedBox(height: 10),
+                  NButton('Retry', icon: Icons.refresh_rounded, onTap: () => repo.process(m.id)),
+                  const SizedBox(height: 6),
+                  Text('The audio is kept on your phone until this works.', style: N.small.copyWith(fontSize: 12)),
+                ],
+                if (m.status == 'pending') ...[
+                  const SizedBox(height: 10),
+                  Text('Add your Gemini key (Me → AI) to turn this into minutes.', style: N.small),
+                  const SizedBox(height: 10),
+                  NButton(
+                    'Write minutes now',
+                    icon: Icons.auto_awesome_outlined,
                     onTap: () async {
-                      final v = await askText(context, 'Meeting title', m.title);
-                      if (v != null && v.trim().isNotEmpty) await repo.rename(m.id, v);
+                      if (!await ref.read(aiProvider).hasKey) {
+                        if (context.mounted) showSnack(context, AiNotReady().toString());
+                        return;
+                      }
+                      await repo.process(m.id);
                     },
-                    child: Text(m.title, style: N.h1.copyWith(fontSize: 22)),
                   ),
-                ),
-                MeetingStatusPill(m),
-              ]),
-              const SizedBox(height: 4),
-              Text('${fmtDayKey(clock.calendarDateFor(m.startedAtUtc))}, ${fmtTime(clock, m.startedAtUtc)}', style: N.small),
-              if (m.status == 'error') ...[
-                const SizedBox(height: 10),
-                Text(m.error ?? 'Something went wrong', style: N.small.copyWith(color: N.bad)),
-                const SizedBox(height: 10),
-                NButton('Retry', icon: Icons.refresh_rounded, onTap: () => repo.process(m.id)),
-                const SizedBox(height: 6),
-                Text('The audio is kept on your phone until this works.', style: N.small.copyWith(fontSize: 12)),
+                ],
+                if (m.busy) ...[
+                  const SizedBox(height: 12),
+                  LinearProgressIndicator(
+                    value: m.status == 'transcribing' && m.paths.isNotEmpty ? m.chunks.length / m.paths.length : null,
+                    color: N.gold,
+                    backgroundColor: N.raise,
+                  ),
+                  const SizedBox(height: 6),
+                  Text('You can leave this screen. It keeps working.', style: N.small.copyWith(fontSize: 12)),
+                ],
               ],
-              if (m.status == 'pending') ...[
-                const SizedBox(height: 10),
-                Text('Add your Gemini key (Me → AI) to turn this into minutes.', style: N.small),
-                const SizedBox(height: 10),
-                NButton('Write minutes now', icon: Icons.auto_awesome_outlined, onTap: () async {
-                  if (!await ref.read(aiProvider).hasKey) {
-                    if (context.mounted) showSnack(context, AiNotReady().toString());
-                    return;
-                  }
-                  await repo.process(m.id);
-                }),
-              ],
-              if (m.busy) ...[
-                const SizedBox(height: 12),
-                LinearProgressIndicator(
-                  value: m.status == 'transcribing' && m.paths.isNotEmpty ? m.chunks.length / m.paths.length : null,
-                  color: N.gold,
-                  backgroundColor: N.raise,
-                ),
-                const SizedBox(height: 6),
-                Text('You can leave this screen. It keeps working.', style: N.small.copyWith(fontSize: 12)),
-              ],
-            ]),
+            ),
           ),
           if (mom != null) ...[
             const SizedBox(height: N.gap),
             GlassCard(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                CardHeader('Minutes', trailing: GestureDetector(
-                  onTap: () async {
-                    final v = await askText(context, 'Attendees (comma separated)', mom.attendees.join(', '));
-                    if (v == null) return;
-                    await repo.saveMom(
-                      m.id,
-                      mom.copyWith(attendees: v.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList()),
-                    );
-                  },
-                  child: const Text('Edit attendees', style: TextStyle(color: N.gold, fontWeight: FontWeight.w600, fontSize: 13)),
-                )),
-                if (mom.attendees.isNotEmpty) Text('With ${mom.attendees.join(', ')}', style: N.small),
-                if (mom.summary.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  Text(mom.summary, style: const TextStyle(fontSize: 15, height: 1.5)),
-                ],
-                section('Key points', mom.keyPoints),
-                section('Decisions', mom.decisions),
-                section('Action items', [
-                  for (final a in mom.actionItems)
-                    '${a.task}${a.owner.isEmpty ? '' : ' — ${a.owner}'}${a.deadline == null ? '' : ' · by ${fmtDayKey(a.deadline!)}'}',
-                ]),
-                if (mom.followUpDate != null) section('Follow-up', [fmtDayKey(mom.followUpDate!)]),
-                const SizedBox(height: 14),
-                NButton(
-                  m.actionsCreated ? 'Tasks & reminders created ✓' : 'Turn action items into tasks',
-                  icon: Icons.playlist_add_check_rounded,
-                  expand: true,
-                  onTap: m.actionsCreated || _busy
-                      ? null
-                      : () => _do(() async {
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  CardHeader(
+                    'Minutes',
+                    trailing: GestureDetector(
+                      onTap: () async {
+                        final v = await askText(context, 'Attendees (comma separated)', mom.attendees.join(', '));
+                        if (v == null) return;
+                        await repo.saveMom(
+                          m.id,
+                          mom.copyWith(
+                            attendees: v.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList(),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        'Edit attendees',
+                        style: TextStyle(color: N.gold, fontWeight: FontWeight.w600, fontSize: 13),
+                      ),
+                    ),
+                  ),
+                  if (mom.attendees.isNotEmpty) Text('With ${mom.attendees.join(', ')}', style: N.small),
+                  if (mom.summary.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Text(mom.summary, style: const TextStyle(fontSize: 15, height: 1.5)),
+                  ],
+                  section('Key points', mom.keyPoints),
+                  section('Decisions', mom.decisions),
+                  section('Action items', [
+                    for (final a in mom.actionItems)
+                      '${a.task}${a.owner.isEmpty ? '' : ' — ${a.owner}'}${a.deadline == null ? '' : ' · by ${fmtDayKey(a.deadline!)}'}',
+                  ]),
+                  if (mom.followUpDate != null) section('Follow-up', [fmtDayKey(mom.followUpDate!)]),
+                  const SizedBox(height: 14),
+                  NButton(
+                    m.actionsCreated ? 'Tasks & reminders created ✓' : 'Turn action items into tasks',
+                    icon: Icons.playlist_add_check_rounded,
+                    expand: true,
+                    onTap: m.actionsCreated || _busy
+                        ? null
+                        : () => _do(() async {
                             final (t, f) = await repo.createActions(m, ref.read(clockProvider));
-                            if (mounted) showSnack(context, 'Added $t tasks${f > 0 ? ' and a follow-up reminder' : ''}');
+                            if (context.mounted) {
+                              showSnack(context, 'Added $t tasks${f > 0 ? ' and a follow-up reminder' : ''}');
+                            }
                           }),
-                ),
-              ]),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: N.gap),
             _EmailCard(m: m, busy: _busy, run: _do),
@@ -194,14 +228,22 @@ class _MeetingScreenState extends ConsumerState<MeetingScreen> {
           if (m.transcript.isNotEmpty) ...[
             const SizedBox(height: N.gap),
             GlassCard(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                CardHeader('Transcript', trailing: GestureDetector(
-                  onTap: () => setState(() => _showTranscript = !_showTranscript),
-                  child: Text(_showTranscript ? 'Hide' : 'Show',
-                      style: const TextStyle(color: N.gold, fontWeight: FontWeight.w600, fontSize: 13)),
-                )),
-                if (_showTranscript) SelectableText(m.transcript, style: const TextStyle(fontSize: 14, height: 1.5)),
-              ]),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  CardHeader(
+                    'Transcript',
+                    trailing: GestureDetector(
+                      onTap: () => setState(() => _showTranscript = !_showTranscript),
+                      child: Text(
+                        _showTranscript ? 'Hide' : 'Show',
+                        style: const TextStyle(color: N.gold, fontWeight: FontWeight.w600, fontSize: 13),
+                      ),
+                    ),
+                  ),
+                  if (_showTranscript) SelectableText(m.transcript, style: const TextStyle(fontSize: 14, height: 1.5)),
+                ],
+              ),
             ),
           ],
         ],
@@ -243,41 +285,70 @@ class _EmailCardState extends ConsumerState<_EmailCard> {
   Widget build(BuildContext context) {
     final repo = ref.read(meetingsRepoProvider);
     return GlassCard(
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        const CardHeader('Follow-up e-mail'),
-        if (_body.text.isEmpty)
-          NButton('Draft with AI', kind: BtnKind.raise, icon: Icons.auto_awesome_outlined, expand: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const CardHeader('Follow-up e-mail'),
+          if (_body.text.isEmpty)
+            NButton(
+              'Draft with AI',
+              kind: BtnKind.raise,
+              icon: Icons.auto_awesome_outlined,
+              expand: true,
               onTap: widget.busy
                   ? null
                   : () => widget.run(() async {
-                        _body.text = await repo.draftEmail(widget.m);
-                        setState(() {});
-                      }))
-        else ...[
-          TextField(controller: _to, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(hintText: 'To: name@company.com')),
-          const SizedBox(height: 8),
-          TextField(controller: _body, minLines: 6, maxLines: null, style: const TextStyle(fontSize: 14, height: 1.45)),
-          const SizedBox(height: 10),
-          Row(children: [
-            IconBtn(Icons.copy_rounded, label: 'Copy', onTap: () {
-              Clipboard.setData(ClipboardData(text: _body.text));
-              showSnack(context, 'Copied');
-            }),
-            const SizedBox(width: 8),
-            Expanded(
-              child: NButton('Send via Gmail', icon: Icons.send_rounded, onTap: widget.busy
-                  ? null
-                  : () => widget.run(() async {
-                        if (!isEmail(_to.text)) throw Exception('Enter a valid e-mail address');
-                        await repo.saveDraft(widget.m.id, _body.text);
-                        final (subject, body) = _split(_body.text);
-                        await ref.read(gmailServiceProvider).send(to: _to.text.trim(), subject: subject, body: body);
-                        if (mounted) showSnack(context, 'Sent ✓');
-                      })),
+                      _body.text = await repo.draftEmail(widget.m);
+                      setState(() {});
+                    }),
+            )
+          else ...[
+            TextField(
+              controller: _to,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(hintText: 'To: name@company.com'),
             ),
-          ]),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _body,
+              minLines: 6,
+              maxLines: null,
+              style: const TextStyle(fontSize: 14, height: 1.45),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                IconBtn(
+                  Icons.copy_rounded,
+                  label: 'Copy',
+                  onTap: () {
+                    Clipboard.setData(ClipboardData(text: _body.text));
+                    showSnack(context, 'Copied');
+                  },
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: NButton(
+                    'Send via Gmail',
+                    icon: Icons.send_rounded,
+                    onTap: widget.busy
+                        ? null
+                        : () => widget.run(() async {
+                            if (!isEmail(_to.text)) throw Exception('Enter a valid e-mail address');
+                            await repo.saveDraft(widget.m.id, _body.text);
+                            final (subject, body) = _split(_body.text);
+                            await ref
+                                .read(gmailServiceProvider)
+                                .send(to: _to.text.trim(), subject: subject, body: body);
+                            if (context.mounted) showSnack(context, 'Sent ✓');
+                          }),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
-      ]),
+      ),
     );
   }
 }

@@ -11,17 +11,19 @@ String waNumber(String phone) {
 Future<bool> callNumber(String phone) => launchUrl(Uri(scheme: 'tel', path: phone.replaceAll(' ', '')));
 
 Future<bool> whatsapp(String phone, {String text = ''}) => launchUrl(
-      Uri.parse('https://wa.me/${waNumber(phone)}${text.isEmpty ? '' : '?text=${Uri.encodeComponent(text)}'}'),
-      mode: LaunchMode.externalApplication,
-    );
+  Uri.parse('https://wa.me/${waNumber(phone)}${text.isEmpty ? '' : '?text=${Uri.encodeComponent(text)}'}'),
+  mode: LaunchMode.externalApplication,
+);
 
-Future<bool> emailTo(String email, {String subject = '', String body = ''}) => launchUrl(Uri(
-      scheme: 'mailto',
-      path: email,
-      query: [
-        if (subject.isNotEmpty) 'subject=${Uri.encodeComponent(subject)}',
-        if (body.isNotEmpty) 'body=${Uri.encodeComponent(body)}',
-      ].join('&'),
-    ));
+Future<bool> emailTo(String email, {String subject = '', String body = ''}) => launchUrl(
+  Uri(
+    scheme: 'mailto',
+    path: email,
+    query: [
+      if (subject.isNotEmpty) 'subject=${Uri.encodeComponent(subject)}',
+      if (body.isNotEmpty) 'body=${Uri.encodeComponent(body)}',
+    ].join('&'),
+  ),
+);
 
 Future<bool> openUrl(String url) => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);

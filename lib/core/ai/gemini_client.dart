@@ -19,7 +19,7 @@ class GeminiError implements Exception {
 /// Android secure storage and never written to the database or repo.
 class GeminiClient {
   GeminiClient({required this.apiKey, required this.model, http.Client? httpClient})
-      : _http = httpClient ?? http.Client();
+    : _http = httpClient ?? http.Client();
 
   final String apiKey;
   final String model;
@@ -64,9 +64,7 @@ class GeminiClient {
       throw GeminiError('No answer${block == null ? '' : ' ($block)'}');
     }
     final content = (cands.first as Map)['content'] as Map?;
-    final text = ((content?['parts'] as List?) ?? const [])
-        .map((p) => (p as Map)['text'] as String? ?? '')
-        .join();
+    final text = ((content?['parts'] as List?) ?? const []).map((p) => (p as Map)['text'] as String? ?? '').join();
     if (text.trim().isEmpty) throw GeminiError('Empty answer', retryable: true);
     return text;
   }
@@ -87,23 +85,23 @@ class GeminiClient {
   static Map<String, Object?> text(String t) => {'text': t};
 
   static String audioMime(String path) => switch (path.split('.').last.toLowerCase()) {
-        'mp3' => 'audio/mpeg',
-        'wav' => 'audio/wav',
-        'ogg' || 'opus' => 'audio/ogg',
-        'aac' => 'audio/aac',
-        'flac' => 'audio/flac',
-        'amr' => 'audio/amr',
-        '3gp' => 'audio/3gpp',
-        _ => 'audio/mp4',
-      };
+    'mp3' => 'audio/mpeg',
+    'wav' => 'audio/wav',
+    'ogg' || 'opus' => 'audio/ogg',
+    'aac' => 'audio/aac',
+    'flac' => 'audio/flac',
+    'amr' => 'audio/amr',
+    '3gp' => 'audio/3gpp',
+    _ => 'audio/mp4',
+  };
 
   static Map<String, Object?> inlineAudio(Uint8List bytes, String mime) => {
-        'inline_data': {'mime_type': mime, 'data': base64Encode(bytes)},
-      };
+    'inline_data': {'mime_type': mime, 'data': base64Encode(bytes)},
+  };
 
   static Map<String, Object?> fileRef(String uri, String mime) => {
-        'file_data': {'mime_type': mime, 'file_uri': uri},
-      };
+    'file_data': {'mime_type': mime, 'file_uri': uri},
+  };
 
   /// Audio as a request part: inline when small, otherwise via the Files API.
   Future<Map<String, Object?>> audioPart(File f, {String? mime}) async {
@@ -175,7 +173,7 @@ class GeminiClient {
 
 /// Retries [job] on retryable errors with exponential backoff.
 Future<T> withRetry<T>(Future<T> Function() job, {int attempts = 3, Duration base = const Duration(seconds: 4)}) async {
-  for (var i = 0;; i++) {
+  for (var i = 0; ; i++) {
     try {
       return await job();
     } on GeminiError catch (e) {

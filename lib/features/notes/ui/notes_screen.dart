@@ -37,11 +37,17 @@ class _NotesHubState extends ConsumerState<NotesHub> {
         if (showMeetings)
           Padding(
             padding: const EdgeInsets.only(bottom: N.gap),
-            child: Row(children: [
-              Expanded(child: NChip('Notes', on: !_meetings, onTap: () => setState(() => _meetings = false))),
-              const SizedBox(width: 6),
-              Expanded(child: NChip('Meetings', on: _meetings, onTap: () => setState(() => _meetings = true))),
-            ]),
+            child: Row(
+              children: [
+                Expanded(
+                  child: NChip('Notes', on: !_meetings, onTap: () => setState(() => _meetings = false)),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: NChip('Meetings', on: _meetings, onTap: () => setState(() => _meetings = true)),
+                ),
+              ],
+            ),
           ),
         if (_meetings && showMeetings) const MeetingsList() else const _NotesList(),
       ],
@@ -57,66 +63,97 @@ class _NotesList extends ConsumerWidget {
     final notes = ref.watch(notesProvider).value ?? const <Note>[];
     final (q, t) = ref.watch(noteQueryProvider);
     final clock = ref.watch(clockProvider);
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      GlassCard(
-        hero: true,
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          const CardHeader('New note'),
-          Wrap(spacing: 6, runSpacing: 6, children: [
-            for (final k in noteTemplates.keys) NChip('+ $k', on: false, onTap: () => context.push('/note/new?t=${Uri.encodeComponent(k)}')),
-          ]),
-          const SizedBox(height: 12),
-          const VoiceNoteButton(),
-        ]),
-      ),
-      const SizedBox(height: N.gap),
-      TextField(
-        decoration: const InputDecoration(hintText: 'Search notes, tags…', prefixIcon: Icon(Icons.search_rounded, color: N.muted)),
-        onChanged: ref.read(noteQueryProvider.notifier).search,
-      ),
-      const SizedBox(height: 10),
-      SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(children: [
-          NChip('All', on: t == null, onTap: () => ref.read(noteQueryProvider.notifier).template(null)),
-          for (final k in noteTemplates.keys) ...[
-            const SizedBox(width: 6),
-            NChip(k, on: t == k, onTap: () => ref.read(noteQueryProvider.notifier).template(k)),
-          ],
-        ]),
-      ),
-      const SizedBox(height: N.gap),
-      if (notes.isEmpty)
-        EmptyNote(q.isEmpty ? 'Pick a template above, or hold the mic to speak a note.' : 'No notes match "$q".'),
-      for (final n in notes)
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: GlassCard(
-            padding: const EdgeInsets.all(14),
-            child: InkWell(
-              onTap: () => context.push('/note/${n.id}'),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  Text(n.template, style: N.small.copyWith(fontSize: 12, color: N.gold)),
-                  if (n.pinned) const Padding(padding: EdgeInsets.only(left: 6), child: Icon(Icons.push_pin, size: 13, color: N.gold)),
-                  const Spacer(),
-                  Text(fmtDayKey(clock.calendarDateFor(n.updatedAtUtc)), style: N.small.copyWith(fontSize: 12)),
-                ]),
-                const SizedBox(height: 4),
-                Text(n.title.isEmpty ? 'Untitled' : n.title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-                if (n.body.trim().isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text(n.body.trim(), maxLines: 2, overflow: TextOverflow.ellipsis, style: N.small),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        GlassCard(
+          hero: true,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const CardHeader('New note'),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final k in noteTemplates.keys)
+                    NChip('+ $k', on: false, onTap: () => context.push('/note/new?t=${Uri.encodeComponent(k)}')),
                 ],
-                if (n.tags.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Text(n.tags.split(',').map((t) => '#$t').join(' '), style: N.small.copyWith(fontSize: 12, color: N.water)),
-                ],
-              ]),
-            ),
+              ),
+              const SizedBox(height: 12),
+              const VoiceNoteButton(),
+            ],
           ),
         ),
-    ]);
+        const SizedBox(height: N.gap),
+        TextField(
+          decoration: const InputDecoration(
+            hintText: 'Search notes, tags…',
+            prefixIcon: Icon(Icons.search_rounded, color: N.muted),
+          ),
+          onChanged: ref.read(noteQueryProvider.notifier).search,
+        ),
+        const SizedBox(height: 10),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              NChip('All', on: t == null, onTap: () => ref.read(noteQueryProvider.notifier).template(null)),
+              for (final k in noteTemplates.keys) ...[
+                const SizedBox(width: 6),
+                NChip(k, on: t == k, onTap: () => ref.read(noteQueryProvider.notifier).template(k)),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: N.gap),
+        if (notes.isEmpty)
+          EmptyNote(q.isEmpty ? 'Pick a template above, or hold the mic to speak a note.' : 'No notes match "$q".'),
+        for (final n in notes)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: GlassCard(
+              padding: const EdgeInsets.all(14),
+              child: InkWell(
+                onTap: () => context.push('/note/${n.id}'),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(n.template, style: N.small.copyWith(fontSize: 12, color: N.gold)),
+                        if (n.pinned)
+                          const Padding(
+                            padding: EdgeInsets.only(left: 6),
+                            child: Icon(Icons.push_pin, size: 13, color: N.gold),
+                          ),
+                        const Spacer(),
+                        Text(fmtDayKey(clock.calendarDateFor(n.updatedAtUtc)), style: N.small.copyWith(fontSize: 12)),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      n.title.isEmpty ? 'Untitled' : n.title,
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                    ),
+                    if (n.body.trim().isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(n.body.trim(), maxLines: 2, overflow: TextOverflow.ellipsis, style: N.small),
+                    ],
+                    if (n.tags.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        n.tags.split(',').map((t) => '#$t').join(' '),
+                        style: N.small.copyWith(fontSize: 12, color: N.water),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
   }
 }
 
@@ -161,7 +198,9 @@ class _VoiceNoteButtonState extends ConsumerState<VoiceNoteButton> {
       }
       final text = texts.join('\n\n');
       final first = text.split(RegExp(r'[.!?\n]')).first.trim();
-      final id = await ref.read(notesRepoProvider).save(
+      final id = await ref
+          .read(notesRepoProvider)
+          .save(
             title: first.length > 60 ? '${first.substring(0, 57)}…' : first,
             body: text,
             template: 'Thought dump',
@@ -181,10 +220,10 @@ class _VoiceNoteButtonState extends ConsumerState<VoiceNoteButton> {
 
   @override
   Widget build(BuildContext context) => NButton(
-        _busy ? 'Transcribing…' : (_rec ? 'Stop & save voice note' : 'Speak a note'),
-        kind: _rec ? BtnKind.danger : BtnKind.raise,
-        icon: _rec ? Icons.stop_rounded : Icons.mic_none_rounded,
-        expand: true,
-        onTap: _busy ? null : _toggle,
-      );
+    _busy ? 'Transcribing…' : (_rec ? 'Stop & save voice note' : 'Speak a note'),
+    kind: _rec ? BtnKind.danger : BtnKind.raise,
+    icon: _rec ? Icons.stop_rounded : Icons.mic_none_rounded,
+    expand: true,
+    onTap: _busy ? null : _toggle,
+  );
 }

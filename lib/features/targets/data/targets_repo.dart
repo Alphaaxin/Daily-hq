@@ -39,7 +39,9 @@ class TargetsRepo {
 
   /// Counts automatically for targets fed by other modules (leads, emails).
   Future<void> bumpAuto(String source, String day, int delta) async {
-    final ts = await (db.select(db.targets)..where((t) => t.autoSource.equals(source) & t.archived.equals(false))).get();
+    final ts = await (db.select(
+      db.targets,
+    )..where((t) => t.autoSource.equals(source) & t.archived.equals(false))).get();
     for (final t in ts) {
       await bump(t, day, delta);
     }

@@ -52,26 +52,32 @@ class NotesRepo {
     final cleanTags = tags.split(',').map((e) => e.trim().replaceAll('#', '')).where((e) => e.isNotEmpty).join(',');
     int noteId;
     if (id == null) {
-      noteId = await db.into(db.notes).insert(NotesCompanion.insert(
-            title: Value(title.trim()),
-            body: Value(body),
-            template: Value(template),
-            tags: Value(cleanTags),
-            profileId: Value(profileId),
-            meetingId: Value(meetingId),
-            createdAtUtc: now,
-            updatedAtUtc: now,
-          ));
+      noteId = await db
+          .into(db.notes)
+          .insert(
+            NotesCompanion.insert(
+              title: Value(title.trim()),
+              body: Value(body),
+              template: Value(template),
+              tags: Value(cleanTags),
+              profileId: Value(profileId),
+              meetingId: Value(meetingId),
+              createdAtUtc: now,
+              updatedAtUtc: now,
+            ),
+          );
     } else {
       noteId = id;
-      await (db.update(db.notes)..where((n) => n.id.equals(id))).write(NotesCompanion(
-            title: Value(title.trim()),
-            body: Value(body),
-            template: Value(template),
-            tags: Value(cleanTags),
-            profileId: Value(profileId),
-            updatedAtUtc: Value(now),
-          ));
+      await (db.update(db.notes)..where((n) => n.id.equals(id))).write(
+        NotesCompanion(
+          title: Value(title.trim()),
+          body: Value(body),
+          template: Value(template),
+          tags: Value(cleanTags),
+          profileId: Value(profileId),
+          updatedAtUtc: Value(now),
+        ),
+      );
     }
     if (template == 'Product idea' && title.trim().isNotEmpty) await _syncIdea(noteId, title.trim());
     if (title.trim().isNotEmpty || body.trim().length > 20) await xp.set(day, xpKey, 5);
@@ -81,7 +87,9 @@ class NotesRepo {
   Future<void> _syncIdea(int noteId, String title) async {
     final n = (await byId(noteId))!;
     if (n.ideaId == null) {
-      final ideaId = await db.into(db.ideas).insert(IdeasCompanion.insert(title: title, createdAtUtc: DateTime.now().toUtc()));
+      final ideaId = await db
+          .into(db.ideas)
+          .insert(IdeasCompanion.insert(title: title, createdAtUtc: DateTime.now().toUtc()));
       await (db.update(db.notes)..where((x) => x.id.equals(noteId))).write(NotesCompanion(ideaId: Value(ideaId)));
     } else {
       await (db.update(db.ideas)..where((x) => x.id.equals(n.ideaId!))).write(IdeasCompanion(title: Value(title)));
@@ -89,7 +97,10 @@ class NotesRepo {
   }
 
   Future<Note?> forIdea(int ideaId) =>
-      (db.select(db.notes)..where((n) => n.ideaId.equals(ideaId))..limit(1)).getSingleOrNull();
+      (db.select(db.notes)
+            ..where((n) => n.ideaId.equals(ideaId))
+            ..limit(1))
+          .getSingleOrNull();
 
   Future<void> togglePin(Note n) =>
       (db.update(db.notes)..where((x) => x.id.equals(n.id))).write(NotesCompanion(pinned: Value(!n.pinned)));

@@ -4,7 +4,8 @@ import 'package:nizam/features/leads/domain/share_parser.dart';
 void main() {
   test('Maps share: name, address lines and link', () {
     final p = parseSharedText(
-        'Chai Point\nRoad No. 36, Jubilee Hills\nHyderabad, Telangana 500033\nhttps://maps.app.goo.gl/AbC123xyz');
+      'Chai Point\nRoad No. 36, Jubilee Hills\nHyderabad, Telangana 500033\nhttps://maps.app.goo.gl/AbC123xyz',
+    );
     expect(p.name, 'Chai Point');
     expect(p.address, 'Road No. 36, Jubilee Hills, Hyderabad, Telangana 500033');
     expect(p.url, 'https://maps.app.goo.gl/AbC123xyz');
@@ -24,7 +25,9 @@ void main() {
   });
 
   test('picks out phone and e-mail', () {
-    final p = parseSharedText('Glow Salon\nBanjara Hills\n+91 98480 12345\nhello@glowsalon.in\nhttps://maps.google.com/?cid=1');
+    final p = parseSharedText(
+      'Glow Salon\nBanjara Hills\n+91 98480 12345\nhello@glowsalon.in\nhttps://maps.google.com/?cid=1',
+    );
     expect(p.phone, '+919848012345');
     expect(p.email, 'hello@glowsalon.in');
     expect(p.address, 'Banjara Hills');

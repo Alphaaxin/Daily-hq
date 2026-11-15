@@ -59,8 +59,14 @@ class ReminderSync {
         if (!f.dueAtUtc.isAfter(now)) continue;
         final at = f.dueAtUtc;
         keep.add(NotificationService.followUpBase + f.id);
-        await _n.scheduleFollowUp(f.id, at, '${_icon(f.channel)} $who', f.note.isEmpty ? 'Time to follow up' : f.note,
-            phone: phone, email: email);
+        await _n.scheduleFollowUp(
+          f.id,
+          at,
+          '${_icon(f.channel)} $who',
+          f.note.isEmpty ? 'Time to follow up' : f.note,
+          phone: phone,
+          email: email,
+        );
       }
       if (s.on(Module.people)) {
         final today = clock.today();
@@ -79,11 +85,11 @@ class ReminderSync {
   }
 
   String _icon(String channel) => switch (channel) {
-        'call' => '📞',
-        'whatsapp' => '💬',
-        'email' => '✉️',
-        _ => '⏰',
-      };
+    'call' => '📞',
+    'whatsapp' => '💬',
+    'email' => '✉️',
+    _ => '⏰',
+  };
 
   Future<void> _azan(AppSettings s, DayClock clock) async {
     if (!s.on(Module.salah) || !s.azan) {

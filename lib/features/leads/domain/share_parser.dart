@@ -13,7 +13,10 @@ class SharedPlace {
   final String email;
 
   bool get isMaps =>
-      url.contains('maps.app.goo.gl') || url.contains('google.com/maps') || url.contains('goo.gl/maps') || url.contains('maps.google.');
+      url.contains('maps.app.goo.gl') ||
+      url.contains('google.com/maps') ||
+      url.contains('goo.gl/maps') ||
+      url.contains('maps.google.');
 }
 
 final _url = RegExp(r'https?://\S+');
@@ -34,7 +37,11 @@ SharedPlace parseSharedText(String raw) {
   final email = _mail.firstMatch(text)?.group(0) ?? '';
   if (phone.isNotEmpty) text = text.replaceFirst(_phone, ' ');
   if (email.isNotEmpty) text = text.replaceFirst(email, ' ');
-  final lines = text.split('\n').map((l) => l.trim().replaceAll(RegExp(r'\s{2,}'), ' ')).where((l) => l.isNotEmpty).toList();
+  final lines = text
+      .split('\n')
+      .map((l) => l.trim().replaceAll(RegExp(r'\s{2,}'), ' '))
+      .where((l) => l.isNotEmpty)
+      .toList();
   String name = '', address = '';
   if (lines.length >= 2) {
     name = lines.first;
