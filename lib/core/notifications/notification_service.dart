@@ -22,6 +22,9 @@ class NotificationService {
   static const focusDoneId = 5001;
   static const eyeBase = 5010; // 5010..5019
   static const azanBase = 6000; // 6000..6029 (3 days × 5 prayers × 2)
+  static const followUpBase = 200000; // + follow-up id
+  static const birthdayBase = 300000; // + person id
+  static const nudgeBase = 7000; // 7000..7099
   static const bedtimeId = 3000;
   static const taskBase = 100000; // + task id
 
@@ -156,6 +159,59 @@ class NotificationService {
     for (var i = 0; i < 30; i++) {
       await _plugin.cancel(id: azanBase + i);
     }
+  }
+
+  Future<void> scheduleFollowUp(int id, DateTime at, String title, String body, {bool phone = false, bool email = false}) =>
+      _at(
+        followUpBase + id,
+        at,
+        title,
+        body,
+        AndroidNotificationDetails(
+          'followups',
+          'Follow-ups',
+          channelDescription: 'Calls, messages and e-mails you planned',
+          importance: Importance.max,
+          priority: Priority.high,
+          category: AndroidNotificationCategory.reminder,
+          actions: [
+            if (phone) const AndroidNotificationAction('fu_call', 'Call', showsUserInterface: true),
+            if (phone) const AndroidNotificationAction('fu_wa', 'WhatsApp', showsUserInterface: true),
+            if (email) const AndroidNotificationAction('fu_mail', 'Email', showsUserInterface: true),
+            const AndroidNotificationAction('fu_done', 'Done', showsUserInterface: true),
+          ],
+        ),
+        payload: 'fu:$id',
+      );
+
+  Future<void> scheduleBirthday(int personId, DateTime at, String name) => _at(
+        birthdayBase + personId,
+        at,
+        '🎂 $name\'s birthday today',
+        'Tap to send a wish (AI can write it for you).',
+        const AndroidNotificationDetails('birthdays', 'Birthdays', importance: Importance.high, priority: Priority.high),
+        payload: 'bday:$personId',
+      );
+
+  /// Cancels scheduled notifications in [base, base+span) not in [keep].
+  Future<void> cancelRangeExcept(int base, int span, Set<int> keep) async {
+    for (final id in await pendingIds()) {
+      if (id >= base && id < base + span && !keep.contains(id)) await _plugin.cancel(id: id);
+    }
+  }
+
+  Future<void> showNudge(int slot, String title, String body, {String? payload}) async {
+    if (!_ready) return;
+    await _plugin.show(
+      id: nudgeBase + slot,
+      title: title,
+      body: body,
+      notificationDetails: const NotificationDetails(
+        android: AndroidNotificationDetails('nudges', 'Smart nudges', channelDescription: 'Context-aware suggestions',
+            importance: Importance.defaultImportance),
+      ),
+      payload: payload,
+    );
   }
 
   /// Shows a notification right away (budget alerts, backup prompts…).

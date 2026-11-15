@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../features/people/data/contacts_repo.dart';
 import '../../features/salah/data/salah_repo.dart';
 import '../../features/salah/domain/azan_schedule.dart';
 import '../../features/salah/domain/prayer_times.dart';
@@ -37,7 +38,52 @@ class ReminderSync {
     await _tasks(s);
     await _bedtime(s, clock, asleep);
     await _azan(s, clock);
+    await _followUps(s, clock);
   }
+
+  Future<void> _followUps(AppSettings s, DayClock clock) async {
+    final keep = <int>{};
+    final contacts = ref.read(contactsRepoProvider);
+    final now = clock.nowUtc();
+    if (s.on(Module.people) || s.on(Module.leads)) {
+      final people = {for (final p in await contacts.allPeople()) p.id: p};
+      final leads = {for (final l in await contacts.allLeads()) l.id: l};
+      for (final f in await contacts.openFollowUps()) {
+        if (f.dueAtUtc.isAfter(now.add(const Duration(days: 14)))) continue;
+        final p = people[f.personId];
+        final l = leads[f.leadId];
+        final who = p?.name ?? l?.name ?? 'Follow-up';
+        final phone = (p?.phone ?? l?.phone ?? '').isNotEmpty;
+        final email = (p?.email ?? l?.email ?? '').isNotEmpty;
+        // Overdue ones already notified at their time; they wait in People.
+        if (!f.dueAtUtc.isAfter(now)) continue;
+        final at = f.dueAtUtc;
+        keep.add(NotificationService.followUpBase + f.id);
+        await _n.scheduleFollowUp(f.id, at, '${_icon(f.channel)} $who', f.note.isEmpty ? 'Time to follow up' : f.note,
+            phone: phone, email: email);
+      }
+      if (s.on(Module.people)) {
+        final today = clock.today();
+        for (final p in people.values) {
+          final next = nextBirthday(p.birthday, today);
+          if (next == null || DayKey.diff(today, next) > 30) continue;
+          final at = clock.localToUtc(next, 10, 0);
+          if (!at.isAfter(now)) continue;
+          keep.add(NotificationService.birthdayBase + p.id);
+          await _n.scheduleBirthday(p.id, at, p.name);
+        }
+      }
+    }
+    await _n.cancelRangeExcept(NotificationService.followUpBase, 100000, keep);
+    await _n.cancelRangeExcept(NotificationService.birthdayBase, 100000, keep);
+  }
+
+  String _icon(String channel) => switch (channel) {
+        'call' => '📞',
+        'whatsapp' => '💬',
+        'email' => '✉️',
+        _ => '⏰',
+      };
 
   Future<void> _azan(AppSettings s, DayClock clock) async {
     if (!s.on(Module.salah) || !s.azan) {
@@ -86,7 +132,9 @@ class ReminderSync {
   }
 
   Future<void> _tasks(AppSettings s) async {
-    final pending = (await _n.pendingIds()).where((i) => i >= NotificationService.taskBase).toSet();
+    final pending = (await _n.pendingIds())
+        .where((i) => i >= NotificationService.taskBase && i < NotificationService.followUpBase)
+        .toSet();
     final want = <int>{};
     if (s.on(Module.tasks) && s.taskReminders) {
       final now = DateTime.now().toUtc();

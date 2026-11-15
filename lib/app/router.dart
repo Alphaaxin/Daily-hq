@@ -10,10 +10,16 @@ import '../features/me/ui/me_screen.dart';
 import '../features/money/ui/money_screen.dart';
 import '../features/money/ui/money_settings_screen.dart';
 import '../features/onboarding/ui/setup_screen.dart';
-import '../features/placeholders/ui/coming_soon.dart';
 import '../features/targets/ui/targets_section.dart';
 import '../features/tasks/ui/tasks_screen.dart';
 import '../features/today/ui/today_screen.dart';
+import '../features/leads/ui/leads_screen.dart';
+import '../features/mail/ui/mail_screen.dart';
+import '../features/me/ui/ai_screen.dart';
+import '../features/meetings/ui/meeting_screen.dart';
+import '../features/notes/ui/note_editor.dart';
+import '../features/notes/ui/notes_screen.dart';
+import '../features/people/ui/people_screen.dart';
 import 'shell.dart';
 
 final rootNavKey = GlobalKey<NavigatorState>();
@@ -32,7 +38,7 @@ GoRouter buildRouter(String initialLocation) => GoRouter(
           routes: [GoRoute(path: '/money', builder: (_, _) => const MoneyScreen())],
         ),
         StatefulShellBranch(
-          routes: [GoRoute(path: '/notes', builder: (_, _) => notesComingSoon)],
+          routes: [GoRoute(path: '/notes', builder: (_, _) => const NotesHub())],
         ),
         StatefulShellBranch(
           routes: [GoRoute(path: '/rewards', builder: (_, _) => const RewardsScreen())],
@@ -48,6 +54,35 @@ GoRouter buildRouter(String initialLocation) => GoRouter(
     GoRoute(path: '/targets', parentNavigatorKey: rootNavKey, builder: (_, _) => const TargetsScreen()),
     GoRoute(path: '/google', parentNavigatorKey: rootNavKey, builder: (_, _) => const GoogleScreen()),
     GoRoute(path: '/calendar', parentNavigatorKey: rootNavKey, builder: (_, _) => const CalendarScreen()),
+    GoRoute(
+      path: '/note/new',
+      parentNavigatorKey: rootNavKey,
+      builder: (_, s) => NoteEditor(template: s.uri.queryParameters['t'] ?? 'Thought dump'),
+    ),
+    GoRoute(
+      path: '/note/:id',
+      parentNavigatorKey: rootNavKey,
+      builder: (_, s) => NoteEditor(id: int.tryParse(s.pathParameters['id'] ?? '')),
+    ),
+    GoRoute(
+      path: '/meeting/:id',
+      parentNavigatorKey: rootNavKey,
+      builder: (_, s) => MeetingScreen(id: int.parse(s.pathParameters['id']!)),
+    ),
+    GoRoute(path: '/people', parentNavigatorKey: rootNavKey, builder: (_, _) => const PeopleScreen()),
+    GoRoute(path: '/leads', parentNavigatorKey: rootNavKey, builder: (_, _) => const LeadsScreen()),
+    GoRoute(
+      path: '/leads/new',
+      parentNavigatorKey: rootNavKey,
+      builder: (_, s) => LeadEditor(shared: s.extra as String?),
+    ),
+    GoRoute(
+      path: '/leads/:id',
+      parentNavigatorKey: rootNavKey,
+      builder: (_, s) => LeadEditor(id: int.tryParse(s.pathParameters['id'] ?? '')),
+    ),
+    GoRoute(path: '/mail', parentNavigatorKey: rootNavKey, builder: (_, _) => const MailScreen()),
+    GoRoute(path: '/ai', parentNavigatorKey: rootNavKey, builder: (_, _) => const AiScreen()),
     GoRoute(path: '/tasks', parentNavigatorKey: rootNavKey, builder: (_, _) => const TasksScreen()),
     GoRoute(path: '/setup', parentNavigatorKey: rootNavKey, builder: (_, _) => const SetupScreen()),
     GoRoute(path: '/welcome', parentNavigatorKey: rootNavKey, builder: (_, _) => const SetupScreen(firstRun: true)),

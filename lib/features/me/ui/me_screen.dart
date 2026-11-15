@@ -659,7 +659,11 @@ class _LinksCard extends ConsumerWidget {
             s.googleEmail.isEmpty ? 'Calendar sync and Drive backup are off' : s.googleEmail,
             '/google',
           ),
-          link(Icons.calendar_month_outlined, 'Calendar', 'Tasks and events by day, week or month', '/calendar'),
+          if (s.on(Module.people)) link(Icons.people_alt_outlined, 'People', 'Follow-ups, birthdays, contacts', '/people'),
+        if (s.on(Module.leads)) link(Icons.storefront_outlined, 'Leads', 'Pipeline from New to Closed', '/leads'),
+        if (s.on(Module.mail)) link(Icons.mark_email_unread_outlined, 'Mail merge', 'Templates, CSV, scheduled sends via Gmail', '/mail'),
+        link(Icons.auto_awesome_outlined, 'AI (Gemini)', 'Key and model for minutes, voice notes, drafts', '/ai'),
+        link(Icons.calendar_month_outlined, 'Calendar', 'Tasks and events by day, week or month', '/calendar'),
           if (s.on(Module.focus))
             link(Icons.timer_outlined, 'Focus & Build Hour', 'Pomodoro, work timer, ideas', '/focus'),
           if (s.on(Module.focus))

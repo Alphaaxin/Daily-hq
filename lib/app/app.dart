@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,7 +12,15 @@ import '../core/notifications/notification_service.dart';
 import '../core/notifications/reminder_sync.dart';
 import '../core/providers.dart';
 import '../core/theme/nizam_theme.dart';
+import '../core/ai/ai_service.dart';
+import '../core/native/native_bridge.dart';
+import '../core/theme/widgets.dart';
 import '../features/focus/data/focus_controller.dart';
+import '../features/mail/data/mail_sender.dart';
+import '../features/meetings/data/meetings_repo.dart';
+import '../features/meetings/ui/meetings_list.dart';
+import '../features/people/data/contacts_repo.dart';
+import '../features/people/ui/contact_actions.dart';
 import '../features/google/data/drive_backup.dart';
 import '../features/google/data/google_jobs.dart';
 import '../features/money/ui/quick_log_sheet.dart';
@@ -62,6 +71,49 @@ class _NizamAppState extends ConsumerState<NizamApp> with WidgetsBindingObserver
     ref.read(reminderSyncProvider).schedule();
     ref.read(focusControllerProvider).resync();
     ref.read(googleJobsProvider).syncOnResume();
+    const MethodChannel('nizam/launch').setMethodCallHandler((call) async {
+      if (call.method == 'launch') _onLaunch((call.arguments as Map).cast<String, Object?>());
+      return null;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final l = await NativeBridge.takeLaunch();
+      if (l != null) _onLaunch(l);
+      _resumeWork();
+    });
+  }
+
+  /// Picks up work left over from last time: queued e-mails, meetings that
+  /// still need minutes.
+  Future<void> _resumeWork() async {
+    unawaited(ref.read(mailSenderProvider).run().catchError((_) => 0));
+    if (!await ref.read(aiProvider).hasKey) return;
+    final meetings = await ref.read(meetingsRepoProvider).watchAll().first;
+    for (final m in meetings.where((m) => m.status == 'pending' || m.busy)) {
+      unawaited(ref.read(meetingsRepoProvider).process(m.id));
+    }
+  }
+
+  /// Opened from a widget, a notification route, or a Google Maps share.
+  Future<void> _onLaunch(Map<String, Object?> l) async {
+    final route = l['route'] as String?;
+    final text = l['text'] as String?;
+    if (route == null) return;
+    switch (route) {
+      case '/action/water':
+        await addWater(ref, 1);
+        _router.go('/today');
+      case '/meetings/record':
+        _router.go('/notes');
+        final err = await ref.read(meetingRecorderProvider).start();
+        final ctx = _ctx;
+        if (ctx != null && ctx.mounted) showSnack(ctx, err ?? 'Recording… let everyone know.');
+      case '/meetings':
+        _router.go('/notes');
+      case '/leads/new':
+        _router.push('/leads/new', extra: text);
+      default:
+        _router.go(route);
+    }
   }
 
   @override
@@ -103,6 +155,18 @@ class _NizamAppState extends ConsumerState<NizamApp> with WidgetsBindingObserver
       _router.go('/today');
       return;
     }
+    if (p.startsWith('fu:')) {
+      await _onFollowUp(int.tryParse(p.substring(3)), r.actionId);
+      return;
+    }
+    if (p.startsWith('bday:')) {
+      _router.push('/people');
+      return;
+    }
+    if (p.startsWith('nudge:')) {
+      _router.go(p.substring(6));
+      return;
+    }
     if (p == 'focus') {
       _router.push('/focus');
       return;
@@ -134,6 +198,31 @@ class _NizamAppState extends ConsumerState<NizamApp> with WidgetsBindingObserver
       _router.go('/today');
     } else {
       _router.go('/today');
+    }
+  }
+
+  Future<void> _onFollowUp(int? id, String? action) async {
+    if (id == null) return;
+    final repo = ref.read(contactsRepoProvider);
+    final f = await repo.followUp(id);
+    if (f == null) return;
+    final p = f.personId == null ? null : await repo.person(f.personId!);
+    final l = f.leadId == null ? null : await repo.lead(f.leadId!);
+    final phone = p?.phone ?? l?.phone ?? '';
+    final email = p?.email ?? l?.email ?? '';
+    switch (action) {
+      case 'fu_call':
+        await callNumber(phone);
+      case 'fu_wa':
+        await whatsapp(phone);
+      case 'fu_mail':
+        await emailTo(email);
+      case 'fu_done':
+        await repo.completeFollowUp(id, ref.read(clockProvider));
+        ref.read(reminderSyncProvider).schedule();
+        return;
+      default:
+        _router.push(l != null ? '/leads' : '/people');
     }
   }
 

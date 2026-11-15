@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/providers.dart';
 import '../../../core/settings/app_settings.dart';
@@ -11,6 +12,7 @@ import '../../sleep/data/sleep_repo.dart';
 import '../../sleep/ui/sleep_panel.dart';
 import '../../tasks/ui/task_widgets.dart';
 import '../../water/data/water_repo.dart';
+import '../../meetings/ui/meetings_list.dart';
 import '../../money/ui/quick_log_sheet.dart';
 import '../../water/ui/water_section.dart';
 
@@ -40,6 +42,23 @@ class QuickCaptureSheet extends ConsumerWidget {
         _Tile(Icons.check_circle_outline_rounded, 'Task', N.gold, () {
           close();
           showAddTaskSheet(context);
+        }),
+      if (s.on(Module.notes))
+        _Tile(Icons.sticky_note_2_outlined, 'Note', N.goldHi, () {
+          close();
+          context.push('/note/new');
+        }),
+      if (s.on(Module.leads))
+        _Tile(Icons.storefront_outlined, 'Lead', N.good, () {
+          close();
+          context.push('/leads/new');
+        }),
+      if (s.on(Module.meetings))
+        _Tile(Icons.fiber_manual_record_rounded, 'Record meeting', N.bad, () async {
+          close();
+          context.go('/notes');
+          final err = await ref.read(meetingRecorderProvider).start();
+          if (context.mounted) showSnack(context, err ?? 'Recording… let everyone know.');
         }),
       if (s.on(Module.water))
         _Tile(Icons.water_drop_outlined, '+1 water · $water', N.water, () async {
@@ -97,7 +116,7 @@ class QuickCaptureSheet extends ConsumerWidget {
                 style: TextStyle(fontFamily: N.display, fontWeight: FontWeight.w700, color: N.gold, fontSize: 18),
               ),
               const SizedBox(width: 10),
-              Expanded(child: Text('Notes, leads and meeting recording arrive in Phase 3.', style: N.small)),
+              Expanded(child: Text('Tip: tap empty space 4 times anywhere to log money.', style: N.small)),
             ],
           ),
         ),

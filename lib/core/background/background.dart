@@ -7,6 +7,7 @@ import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:workmanager/workmanager.dart';
 
 import '../../features/google/data/calendar_sync.dart';
+import '../../features/mail/data/mail_sender.dart';
 import '../../features/google/data/drive_backup.dart';
 import '../../features/google/domain/backup_names.dart';
 import '../db/open_db.dart';
@@ -37,6 +38,17 @@ void callbackDispatcher() {
       switch (task) {
         case taskSync:
           await container.read(calendarSyncProvider).sync();
+        case taskMailQueue:
+          try {
+            await container.read(mailSenderProvider).run();
+          } catch (_) {
+            await NotificationService.instance.showNow(
+              backupPromptId + 1,
+              'Scheduled e-mails are ready',
+              'Tap to start sending your mail-merge campaign.',
+              payload: 'nudge:/mail',
+            );
+          }
         case taskBackup || taskBackupRetry:
           if (_backedUpRecently(s)) return true;
           try {
