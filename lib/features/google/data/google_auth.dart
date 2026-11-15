@@ -41,7 +41,7 @@ class GoogleAuth {
     }
     if (_initialized) {
       if (_initializedWith != id) {
-        throw GoogleNotReady('Client ID changed: close and reopen Nizam to use the new one.');
+        throw GoogleNotReady('Client ID changed: close and reopen Solo Leveling to use the new one.');
       }
       return;
     }

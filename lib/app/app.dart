@@ -193,7 +193,7 @@ class _NizamAppState extends ConsumerState<NizamApp> with WidgetsBindingObserver
     ref.listen(upcomingTasksProvider, gsync);
 
     return MaterialApp.router(
-      title: 'Nizam',
+      title: 'Solo Leveling',
       debugShowCheckedModeBanner: false,
       theme: nizamTheme(),
       darkTheme: nizamTheme(),

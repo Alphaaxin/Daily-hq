@@ -87,9 +87,9 @@ class DriveBackup {
     try {
       final v = check.select('PRAGMA user_version').first.values.first as int;
       final ok = check.select("SELECT name FROM sqlite_master WHERE type='table' AND name='tasks'").isNotEmpty;
-      if (!ok) throw Exception('That file is not a Nizam backup.');
+      if (!ok) throw Exception('That file is not a Solo Leveling backup.');
       if (v > AppDb.currentSchema) {
-        throw Exception('Backup is from a newer Nizam (v$v). Update the app first.');
+        throw Exception('Backup is from a newer Solo Leveling (v$v). Update the app first.');
       }
     } finally {
       check.dispose();

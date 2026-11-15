@@ -1,4 +1,6 @@
-# Nizam: personal life OS
+# Solo Leveling: personal life OS
+
+*(Internally the project and Android package are still called `nizam` / `com.habeeb.nizam`, so updates keep installing over the existing app.)*
 
 A gamified command center for one person: plan the day, track sleep, habits, water, prayer and tasks, and earn XP for all of it. It's an Android app built with Flutter that works fully offline and is installed directly as an APK (no Play Store).
 

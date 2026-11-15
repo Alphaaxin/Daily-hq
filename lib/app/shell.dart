@@ -98,11 +98,17 @@ class _TopBar extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 10),
-            const GoldText(
-              'NIZAM',
-              style: TextStyle(fontFamily: N.display, fontWeight: FontWeight.w700, fontSize: 15, letterSpacing: 3.3),
+            const Expanded(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: GoldText(
+                  'SOLO LEVELING',
+                  style: TextStyle(fontFamily: N.display, fontWeight: FontWeight.w700, fontSize: 15, letterSpacing: 2.2),
+                ),
+              ),
             ),
-            const Spacer(),
+            const SizedBox(width: 10),
             const Row(
               children: [
                 SizedBox(

@@ -144,7 +144,9 @@ class MoneySettingsScreen extends ConsumerWidget {
                         onChanged: (v) async {
                           if (v && !await NativeBridge.canDrawOverlays()) {
                             await NativeBridge.requestOverlay();
-                            if (context.mounted) showSnack(context, 'Allow Nizam, then switch the bubble on again.');
+                            if (context.mounted) {
+                              showSnack(context, 'Allow Solo Leveling, then switch the bubble on again.');
+                            }
                             return;
                           }
                           await settings.set('bubble', v);
@@ -157,7 +159,7 @@ class MoneySettingsScreen extends ConsumerWidget {
                 const SizedBox(height: 8),
                 Text(
                   'Also: pull down Quick Settings → edit (pencil) → drag "₹ Log money" in. '
-                  'Long-press your home screen → Widgets → Nizam for the one-tap widget.',
+                  'Long-press your home screen → Widgets → Solo Leveling for the one-tap widget.',
                   style: N.small.copyWith(fontSize: 12),
                 ),
               ],

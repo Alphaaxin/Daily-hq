@@ -45,7 +45,7 @@ void callbackDispatcher() {
             // Google sign-in often needs the app in front: ask nicely instead.
             await NotificationService.instance.showNow(
               backupPromptId,
-              'Back up Nizam',
+              'Back up Solo Leveling',
               'Tap to back up today\'s data to Google Drive.',
               payload: 'backup',
             );

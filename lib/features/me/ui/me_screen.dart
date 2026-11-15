@@ -611,7 +611,7 @@ class _SetupCard extends StatelessWidget {
           onTap: () => context.push('/setup'),
         ),
         const SizedBox(height: 14),
-        Center(child: Text('Nizam · Phase 1 · all data stays on this phone', style: N.small.copyWith(fontSize: 12))),
+        Center(child: Text('Solo Leveling · all data stays on this phone', style: N.small.copyWith(fontSize: 12))),
       ],
     ),
   );

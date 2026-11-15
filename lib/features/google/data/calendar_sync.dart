@@ -60,11 +60,13 @@ class CalendarSync {
       }
     }
     final list = await api.calendarList.list();
-    final existing = list.items?.where((c) => c.summary == 'Nizam' && c.accessRole == 'owner').firstOrNull;
+    final existing = list.items
+        ?.where((c) => (c.summary == 'Solo Leveling' || c.summary == 'Nizam') && c.accessRole == 'owner')
+        .firstOrNull;
     final id =
         existing?.id ??
         (await api.calendars.insert(
-          gcal.Calendar(summary: 'Nizam', timeZone: ref.read(settingsProvider).timezone),
+          gcal.Calendar(summary: 'Solo Leveling', timeZone: ref.read(settingsProvider).timezone),
         )).id!;
     await ref.read(settingsRepoProvider).set('nizamCalendarId', id);
     await _store.setToken('sync:nizam', null);

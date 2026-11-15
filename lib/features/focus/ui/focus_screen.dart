@@ -234,7 +234,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen> {
                     if (v && !await NativeBridge.hasDndAccess()) {
                       await NativeBridge.requestDndAccess();
                       if (context.mounted) {
-                        showSnack(context, 'Allow Nizam under Do Not Disturb access, then switch this on.');
+                        showSnack(context, 'Allow Solo Leveling under Do Not Disturb access, then switch this on.');
                       }
                       return;
                     }

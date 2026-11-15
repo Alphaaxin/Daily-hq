@@ -246,7 +246,7 @@ class _GoogleScreenState extends ConsumerState<GoogleScreen> {
         title: Text('Restore this backup?', style: N.h2),
         content: Text(
           'Everything on this phone is replaced with the backup from '
-          '${fmtDayKey(ref.read(clockProvider).calendarDateFor(b.at))}. Nizam will close; open it again.',
+          '${fmtDayKey(ref.read(clockProvider).calendarDateFor(b.at))}. Solo Leveling will close; open it again.',
           style: N.small,
         ),
         actions: [
