@@ -1,0 +1,16 @@
+{
+  "_comment": "Template only. Phase 2+ settings are entered inside the app (Me > Settings) and stored in Android secure storage. Never commit real keys; config/*.json is git-ignored except this file.",
+  "gemini": {
+    "apiKey": "PASTE_IN_APP_NOT_HERE",
+    "model": "gemini-2.5-flash"
+  },
+  "google": {
+    "androidOAuthClientId": "xxxxxxxx.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/calendar",
+      "https://www.googleapis.com/auth/gmail.send",
+      "https://www.googleapis.com/auth/drive.appdata",
+      "https://www.googleapis.com/auth/drive.file"
+    ]
+  }
+}

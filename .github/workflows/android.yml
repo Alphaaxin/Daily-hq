@@ -1,0 +1,89 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  workflow_dispatch:
+
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.35.7"
+          channel: stable
+          cache: true
+
+      - name: Install packages
+        run: flutter pub get
+
+      - name: Check generated database code is up to date
+        run: |
+          dart run build_runner build --delete-conflicting-outputs
+          git diff --exit-code -- lib/core/db/app_db.g.dart
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Set up release signing
+        env:
+          KEYSTORE_B64: ${{ secrets.NIZAM_KEYSTORE_B64 }}
+          STORE_PASSWORD: ${{ secrets.NIZAM_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.NIZAM_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.NIZAM_KEY_ALIAS }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "::warning title=Debug-signed APK::Signing secrets are missing, so this APK is signed with a throwaway debug key. Run the 'Generate signing key' workflow once and add the 4 NIZAM_* secrets (see README) so every future APK installs as an update."
+            exit 0
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > android/app/nizam-release.jks
+          {
+            echo "storeFile=nizam-release.jks"
+            echo "storePassword=$STORE_PASSWORD"
+            echo "keyPassword=$KEY_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+          } > android/key.properties
+
+      - name: Build release APKs
+        run: |
+          BUILD_NUMBER=${{ github.run_number }}
+          flutter build apk --release --build-number=$BUILD_NUMBER
+          flutter build apk --release --split-per-abi --build-number=$BUILD_NUMBER
+          mkdir -p out
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk out/nizam-arm64-v8a.apk
+          cp build/app/outputs/flutter-apk/app-release.apk out/nizam-universal.apk
+          ls -la out
+
+      - name: Upload APK for your phone (arm64)
+        uses: actions/upload-artifact@v4
+        with:
+          name: nizam-apk-arm64-${{ github.run_number }}
+          path: out/nizam-arm64-v8a.apk
+          retention-days: 30
+
+      - name: Upload universal APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: nizam-apk-universal-${{ github.run_number }}
+          path: out/nizam-universal.apk
+          retention-days: 30
+
+      - name: Remove signing files
+        if: always()
+        run: rm -f android/app/nizam-release.jks android/key.properties

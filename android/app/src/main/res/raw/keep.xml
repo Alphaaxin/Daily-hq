@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Drawables looked up by name at runtime (notifications, app shortcuts). -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/ic_stat_nizam,@drawable/ic_shortcut_task,@drawable/ic_shortcut_water,@drawable/ic_shortcut_sleep" />
