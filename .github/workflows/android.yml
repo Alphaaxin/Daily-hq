@@ -59,6 +59,13 @@ jobs:
             echo "keyPassword=$KEY_PASSWORD"
             echo "keyAlias=$KEY_ALIAS"
           } > android/key.properties
+          # The SHA-1 is public (not a secret); Google Cloud needs it for the OAuth client.
+          {
+            echo "### Signing certificate fingerprints (for Google Cloud OAuth)"
+            echo '```'
+            keytool -list -v -keystore android/app/nizam-release.jks -storepass "$STORE_PASSWORD" | grep -E "SHA1:|SHA256:"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build release APKs
         run: |

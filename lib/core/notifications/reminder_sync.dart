@@ -2,6 +2,9 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../features/salah/data/salah_repo.dart';
+import '../../features/salah/domain/azan_schedule.dart';
+import '../../features/salah/domain/prayer_times.dart';
 import '../../features/sleep/data/sleep_repo.dart';
 import '../../features/sleep/domain/sleep_logic.dart';
 import '../../features/tasks/data/tasks_repo.dart';
@@ -33,6 +36,25 @@ class ReminderSync {
     await _water(s, clock, asleep, latest?.wokeAtUtc);
     await _tasks(s);
     await _bedtime(s, clock, asleep);
+    await _azan(s, clock);
+  }
+
+  Future<void> _azan(AppSettings s, DayClock clock) async {
+    if (!s.on(Module.salah) || !s.azan) {
+      await _n.cancelAzan();
+      return;
+    }
+    final alerts = azanSchedule(
+      calc: ref.read(prayerCalculatorProvider),
+      clock: clock,
+      baseId: NotificationService.azanBase,
+      off: {
+        for (final p in Prayer.values)
+          if (s.azanOff.contains(p.name)) p,
+      },
+      beforeMinutes: s.azanBefore ? 10 : null,
+    );
+    await _n.scheduleAzan([for (final a in alerts) (a.id, a.atUtc, a.title, a.body, a.payload)]);
   }
 
   Future<void> _water(AppSettings s, DayClock clock, bool asleep, DateTime? lastWake) async {

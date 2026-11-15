@@ -7,11 +7,12 @@ import 'package:path_provider/path_provider.dart';
 
 import 'app_db.dart';
 
-Future<AppDb> openAppDb() async {
+Future<File> appDbFile() async {
   final dir = await getApplicationDocumentsDirectory();
-  final file = File(p.join(dir.path, 'nizam.sqlite'));
-  return AppDb(NativeDatabase.createInBackground(file));
+  return File(p.join(dir.path, 'nizam.sqlite'));
 }
+
+Future<AppDb> openAppDb() async => AppDb(NativeDatabase.createInBackground(await appDbFile()));
 
 AppDb openMemoryDb() => AppDb(NativeDatabase.memory());
 

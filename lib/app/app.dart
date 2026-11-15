@@ -11,6 +11,12 @@ import '../core/notifications/notification_service.dart';
 import '../core/notifications/reminder_sync.dart';
 import '../core/providers.dart';
 import '../core/theme/nizam_theme.dart';
+import '../features/focus/data/focus_controller.dart';
+import '../features/google/data/drive_backup.dart';
+import '../features/google/data/google_jobs.dart';
+import '../features/money/ui/quick_log_sheet.dart';
+import '../features/salah/data/salah_repo.dart';
+import '../features/salah/domain/prayer_times.dart';
 import '../features/sleep/data/sleep_repo.dart';
 import '../features/sleep/ui/sleep_panel.dart';
 import '../features/tasks/data/tasks_repo.dart';
@@ -48,11 +54,14 @@ class _NizamAppState extends ConsumerState<NizamApp> with WidgetsBindingObserver
     final qa = const QuickActions();
     qa.initialize((type) => WidgetsBinding.instance.addPostFrameCallback((_) => _onShortcut(type)));
     qa.setShortcutItems(const [
+      ShortcutItem(type: 'money', localizedTitle: 'Log money', icon: 'ic_shortcut_money'),
       ShortcutItem(type: 'add_task', localizedTitle: 'Add task', icon: 'ic_shortcut_task'),
       ShortcutItem(type: 'water', localizedTitle: '+1 glass of water', icon: 'ic_shortcut_water'),
       ShortcutItem(type: 'sleep', localizedTitle: 'Good night / morning', icon: 'ic_shortcut_sleep'),
     ]);
     ref.read(reminderSyncProvider).schedule();
+    ref.read(focusControllerProvider).resync();
+    ref.read(googleJobsProvider).syncOnResume();
   }
 
   @override
@@ -67,6 +76,8 @@ class _NizamAppState extends ConsumerState<NizamApp> with WidgetsBindingObserver
     if (state == AppLifecycleState.resumed && widget.enablePlatform) {
       ref.invalidate(tickerProvider);
       ref.read(reminderSyncProvider).schedule();
+      ref.read(focusControllerProvider).resync();
+      ref.read(googleJobsProvider).syncOnResume();
     }
   }
 
@@ -74,6 +85,39 @@ class _NizamAppState extends ConsumerState<NizamApp> with WidgetsBindingObserver
 
   Future<void> _onNotification(NotificationResponse r) async {
     final p = r.payload ?? '';
+    final focus = ref.read(focusControllerProvider);
+    switch (r.actionId) {
+      case 'focus_pause':
+        await focus.pause();
+        return;
+      case 'focus_resume':
+        await focus.resume();
+        return;
+      case 'focus_stop':
+        await focus.stop();
+        _router.go('/today');
+        return;
+    }
+    if (p.startsWith('salah:')) {
+      if (r.actionId == 'salah_done') await _markPrayed(p);
+      _router.go('/today');
+      return;
+    }
+    if (p == 'focus') {
+      _router.push('/focus');
+      return;
+    }
+    if (p == 'backup') {
+      _router.push('/google');
+      try {
+        await ref.read(driveBackupProvider).backupNow();
+      } catch (_) {}
+      return;
+    }
+    if (p == 'money') {
+      _router.go('/money');
+      return;
+    }
     if (r.actionId == 'water_add' || (p == 'water' && r.actionId == null)) {
       if (r.actionId == 'water_add') {
         await addWater(ref, 1);
@@ -93,9 +137,24 @@ class _NizamAppState extends ConsumerState<NizamApp> with WidgetsBindingObserver
     }
   }
 
+  /// "Prayed ✓" from a notification: marks that prayer if it isn't yet.
+  Future<void> _markPrayed(String payload) async {
+    final parts = payload.split(':');
+    if (parts.length != 3) return;
+    final prayer = Prayer.values.where((x) => x.name == parts[2]).firstOrNull;
+    if (prayer == null) return;
+    final day = ref.read(prayerCalculatorProvider).forDate(parts[1]);
+    final logs = await ref.read(salahRepoProvider).watchDate(parts[1]).first;
+    if (logs.containsKey(prayer)) return;
+    await ref.read(salahRepoProvider).toggle(day, prayer, ref.read(clockProvider));
+  }
+
   Future<void> _onShortcut(String type) async {
     final ctx = _ctx;
     switch (type) {
+      case 'money':
+        _router.go('/money');
+        if (ctx != null && ctx.mounted) await showQuickLog(ctx);
       case 'add_task':
         _router.go('/today');
         if (ctx != null && ctx.mounted) await showAddTaskSheet(ctx);
@@ -125,6 +184,13 @@ class _NizamAppState extends ConsumerState<NizamApp> with WidgetsBindingObserver
     ref.listen(latestSleepProvider, resync);
     ref.listen(settingsStreamProvider, resync);
     ref.listen(todayProvider, resync);
+    // Push task edits to Google Calendar a few seconds after they happen.
+    void gsync(_, _) {
+      if (widget.enablePlatform) ref.read(googleJobsProvider).syncSoon();
+    }
+
+    ref.listen(todayTasksProvider, gsync);
+    ref.listen(upcomingTasksProvider, gsync);
 
     return MaterialApp.router(
       title: 'Nizam',

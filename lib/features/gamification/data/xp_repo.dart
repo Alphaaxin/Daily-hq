@@ -50,7 +50,37 @@ class XpRepo {
       final a = levelFor(before), b = levelFor(before + delta);
       _events.add(XpEvent(delta, levelUp: b.level > a.level ? b : null));
     }
+    if (source != multiplierKey && delta != 0) await refreshMultiplier(day);
     return delta;
+  }
+
+  /// The morning-routine bonus: once every morning item is ticked, the day's
+  /// XP is worth ×1.2. Stored as one entry worth 20% of the day's other XP,
+  /// recalculated on every change, so it can never double-count.
+  static const multiplierKey = 'routine:multiplier';
+
+  Future<bool> morningDone(String day) async {
+    final items = await (db.select(
+      db.routineItems,
+    )..where((t) => t.routine.equals('morning') & t.archived.equals(false))).get();
+    if (items.isEmpty) return false;
+    final ids = {for (final i in items) i.id};
+    final logs = await (db.select(db.routineLogs)..where((t) => t.day.equals(day) & t.itemId.isIn(ids))).get();
+    return logs.length >= ids.length;
+  }
+
+  Future<void> refreshMultiplier(String day) async {
+    var bonus = 0;
+    if (await morningDone(day)) {
+      final s = db.xpEntries.amount.sum();
+      final r =
+          await (db.selectOnly(db.xpEntries)
+                ..addColumns([s])
+                ..where(db.xpEntries.day.equals(day) & db.xpEntries.source.equals(multiplierKey).not()))
+              .getSingle();
+      bonus = ((r.read(s) ?? 0) * 0.2).round();
+    }
+    await set(day, multiplierKey, bonus);
   }
 
   Stream<int> watchTotal() {

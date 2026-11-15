@@ -12,7 +12,13 @@ import 'package:nizam/core/db/app_db.dart';
 import 'package:nizam/core/db/open_db.dart';
 import 'package:nizam/core/providers.dart';
 import 'package:nizam/core/time/day_clock.dart';
+import 'package:nizam/features/focus/data/focus_repo.dart';
+import 'package:nizam/features/focus/domain/focus_logic.dart';
 import 'package:nizam/features/gamification/data/xp_repo.dart';
+import 'package:nizam/features/money/data/money_repo.dart';
+import 'package:nizam/features/money/domain/money_parser.dart';
+import 'package:nizam/features/money/ui/quick_log_sheet.dart';
+import 'package:nizam/features/targets/data/targets_repo.dart';
 import 'package:nizam/features/habits/data/habits_repo.dart';
 import 'package:nizam/features/mood/data/mood_repo.dart';
 import 'package:nizam/features/salah/data/salah_repo.dart';
@@ -103,6 +109,86 @@ void main() {
       DayClock(location: loc, now: () => pd.start(Prayer.dhuhr).add(const Duration(minutes: 20))),
     );
     await MoodRepo(db, xp).set(day, 4);
+
+    // Phase 2 data.
+    final money = MoneyRepo(db, xp);
+    final cats = await money.categories();
+    int cat(String n, String type) => cats.firstWhere((c) => c.name == n && c.type == type).id;
+    await money.setBudget(cat('Food', 'spent'), 400000);
+    final earlier = DayClock(location: loc, now: () => ist(3, 13, 0));
+    await money.add(
+      paise: 4000000,
+      type: MoneyType.received,
+      categoryId: cat('Retainer', 'received'),
+      note: 'ToT retainer',
+      clock: earlier,
+      profileId: 2,
+    );
+    await money.add(
+      paise: 500000,
+      type: MoneyType.invested,
+      categoryId: cat('SIP', 'invested'),
+      note: 'Index fund SIP',
+      clock: earlier,
+    );
+    await money.add(
+      paise: 1200000,
+      type: MoneyType.spent,
+      categoryId: cat('Bills', 'spent'),
+      note: 'Rent share',
+      clock: earlier,
+    );
+    for (final (d, p, n) in [(5, 32000, 'Biryani'), (8, 65000, 'Team lunch'), (11, 24000, 'Irani chai')]) {
+      await money.add(
+        paise: p,
+        type: MoneyType.spent,
+        categoryId: cat('Food', 'spent'),
+        note: n,
+        clock: DayClock(location: loc, now: () => ist(d, 14, 0)),
+      );
+    }
+    await money.add(
+      paise: 15000,
+      type: MoneyType.spent,
+      categoryId: cat('Travel', 'spent'),
+      note: 'Rapido',
+      clock: clock,
+    );
+    await money.add(
+      paise: 25000,
+      type: MoneyType.spent,
+      categoryId: cat('Food', 'spent'),
+      note: 'chai & snacks',
+      clock: clock,
+    );
+    final focus = FocusRepo(db, xp);
+    await focus.addIdea('AI cold-email writer for Hyderabad SMBs');
+    await focus.addIdea('Voice-to-MoM meeting bot');
+    await focus.addManual(day: day, minutes: 95, profileId: 2, note: 'ToT candidate shortlist', nowUtc: now);
+    await focus.addManual(day: '2026-11-14', minutes: 120, profileId: 1, note: 'Zillvox lead research', nowUtc: now);
+    final b = DayClock(location: loc, now: () => ist(15, 13, 0));
+    await focus.start(b, FocusKind.build, ideaId: 1);
+    await focus.stop(
+      DayClock(location: loc, now: () => ist(15, 13, 40)),
+      (await focus.running())!,
+      note: 'Prompt chain v1',
+    );
+    final targets = TargetsRepo(db, xp);
+    final ts = await targets.watch().first;
+    await targets.bump(ts[0], day, 12);
+    await targets.bump(ts[1], day, 3);
+    await targets.bump(ts[2], day, 4);
+    await db
+        .into(db.calendarEvents)
+        .insert(
+          CalendarEventsCompanion.insert(
+            calendarId: 'primary',
+            eventId: 'e1',
+            title: const Value('Zillvox weekly sync'),
+            startUtc: Value(ist(15, 18, 0)),
+            endUtc: Value(ist(15, 18, 45)),
+          ),
+        );
     return db;
   }
 
@@ -181,5 +267,56 @@ void main() {
 
   testWidgets('Phone setup renders', (tester) async {
     await run(tester, '/welcome', 'setup', height: shotsDir == null ? 915 : 1400);
+  });
+
+  testWidgets('Money renders', (tester) async {
+    await run(tester, '/money', 'money', height: shotsDir == null ? 915 : 2300);
+  });
+
+  testWidgets('Focus renders', (tester) async {
+    await run(tester, '/focus', 'focus', height: shotsDir == null ? 915 : 1500);
+  });
+
+  testWidgets('Time log renders', (tester) async {
+    await run(tester, '/time', 'time', height: shotsDir == null ? 915 : 1300);
+  });
+
+  testWidgets('Calendar renders', (tester) async {
+    await run(tester, '/calendar', 'calendar', height: shotsDir == null ? 915 : 1000);
+  });
+
+  testWidgets('Google screen renders', (tester) async {
+    await run(tester, '/google', 'google', height: shotsDir == null ? 915 : 1000);
+  });
+
+  testWidgets('Money settings renders', (tester) async {
+    await run(tester, '/money-settings', 'money_settings', height: shotsDir == null ? 915 : 2400);
+  });
+
+  testWidgets('Quick Log parses natural input and saves', (tester) async {
+    if (shotsDir != null) await tester.runAsync(_loadFonts);
+    tester.view.physicalSize = const Size(412 * 2.0, 915 * 2.0);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.reset);
+    final db = await tester.runAsync(seeded);
+    await pumpApp(tester, db!, '/money');
+    await tester.tap(find.text('Log money').last);
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.byType(QuickLogForm), findsOneWidget);
+    await tester.enterText(find.byType(TextField).at(1), '5000 SIP');
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('SIP'), findsWidgets);
+    await shot(tester, 'quicklog');
+    await tester.tap(find.text('Save'));
+    for (var i = 0; i < 6; i++) {
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 30)));
+      await tester.pump(const Duration(milliseconds: 200));
+    }
+    final entries = await tester.runAsync(() => db.select(db.moneyEntries).get());
+    final sip = entries!.where((e) => e.note == 'SIP' && e.type == 'invested');
+    expect(sip.single.amountPaise, 500000);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 1));
+    await tester.runAsync(db.close);
   });
 }

@@ -3,10 +3,22 @@ import 'dart:convert';
 import '../db/app_db.dart';
 
 /// Every module that can be switched off in Me → Modules.
-enum Module { sleep, tasks, habits, water, salah, mood, rewards }
+enum Module { sleep, tasks, habits, water, salah, mood, rewards, money, focus, targets, routines }
 
 extension ModuleLabel on Module {
-  String get label => const ['Sleep & Wake', 'Tasks', 'Habits', 'Water', 'Salah', 'Mood', 'Rewards'][index];
+  String get label => const [
+    'Sleep & Wake',
+    'Tasks',
+    'Habits',
+    'Water',
+    'Salah',
+    'Mood',
+    'Rewards',
+    'Money',
+    'Build Hour & Focus',
+    'Daily targets',
+    'Routines',
+  ][index];
 }
 
 class AppSettings {
@@ -30,6 +42,22 @@ class AppSettings {
     this.autostartConfirmed = false,
     this.sleepPromptDismissed = '',
     this.disabled = const {},
+    this.monthlyBudgetPaise = 2000000,
+    this.quickLogTaps = 4,
+    this.bubble = false,
+    this.azan = true,
+    this.azanOff = const [],
+    this.azanBefore = false,
+    this.pomoWork = 25,
+    this.pomoBreak = 5,
+    this.focusDnd = false,
+    this.eyeBreaks = true,
+    this.eveningHour = 21,
+    this.googleWebClientId = '',
+    this.googleEmail = '',
+    this.lastBackupUtc = '',
+    this.nizamCalendarId = '',
+    this.backupAfterGoodNight = true,
   });
 
   final String name;
@@ -54,6 +82,24 @@ class AppSettings {
   final String sleepPromptDismissed;
   final Set<Module> disabled;
 
+  // Phase 2
+  final int monthlyBudgetPaise;
+  final int quickLogTaps;
+  final bool bubble;
+  final bool azan;
+  final List<String> azanOff;
+  final bool azanBefore;
+  final int pomoWork;
+  final int pomoBreak;
+  final bool focusDnd;
+  final bool eyeBreaks;
+  final int eveningHour;
+  final String googleWebClientId;
+  final String googleEmail;
+  final String lastBackupUtc;
+  final String nizamCalendarId;
+  final bool backupAfterGoodNight;
+
   bool on(Module m) => !disabled.contains(m);
 
   Map<String, Object?> toMap() => {
@@ -76,6 +122,22 @@ class AppSettings {
     'autostartConfirmed': autostartConfirmed,
     'sleepPromptDismissed': sleepPromptDismissed,
     'disabled': disabled.map((m) => m.name).toList(),
+    'monthlyBudgetPaise': monthlyBudgetPaise,
+    'quickLogTaps': quickLogTaps,
+    'bubble': bubble,
+    'azan': azan,
+    'azanOff': azanOff,
+    'azanBefore': azanBefore,
+    'pomoWork': pomoWork,
+    'pomoBreak': pomoBreak,
+    'focusDnd': focusDnd,
+    'eyeBreaks': eyeBreaks,
+    'eveningHour': eveningHour,
+    'googleWebClientId': googleWebClientId,
+    'googleEmail': googleEmail,
+    'lastBackupUtc': lastBackupUtc,
+    'nizamCalendarId': nizamCalendarId,
+    'backupAfterGoodNight': backupAfterGoodNight,
   };
 
   static AppSettings fromMap(Map<String, Object?> m) {
@@ -112,6 +174,22 @@ class AppSettings {
       autostartConfirmed: v('autostartConfirmed', d.autostartConfirmed),
       sleepPromptDismissed: v('sleepPromptDismissed', d.sleepPromptDismissed),
       disabled: dis,
+      monthlyBudgetPaise: v('monthlyBudgetPaise', d.monthlyBudgetPaise),
+      quickLogTaps: v('quickLogTaps', d.quickLogTaps),
+      bubble: v('bubble', d.bubble),
+      azan: v('azan', d.azan),
+      azanOff: (m['azanOff'] is List ? (m['azanOff'] as List).whereType<String>().toList() : const <String>[]),
+      azanBefore: v('azanBefore', d.azanBefore),
+      pomoWork: v('pomoWork', d.pomoWork),
+      pomoBreak: v('pomoBreak', d.pomoBreak),
+      focusDnd: v('focusDnd', d.focusDnd),
+      eyeBreaks: v('eyeBreaks', d.eyeBreaks),
+      eveningHour: v('eveningHour', d.eveningHour),
+      googleWebClientId: v('googleWebClientId', d.googleWebClientId),
+      googleEmail: v('googleEmail', d.googleEmail),
+      lastBackupUtc: v('lastBackupUtc', d.lastBackupUtc),
+      nizamCalendarId: v('nizamCalendarId', d.nizamCalendarId),
+      backupAfterGoodNight: v('backupAfterGoodNight', d.backupAfterGoodNight),
     );
   }
 }

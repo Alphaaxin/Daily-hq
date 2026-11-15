@@ -37,6 +37,51 @@ class TasksRepo {
             ..limit(limit))
           .watch();
 
+  /// Tasks due between two days (inclusive), done or not, for calendar views.
+  Stream<List<Task>> watchRange(String fromDay, String toDay) =>
+      (db.select(db.tasks)
+            ..where((t) => t.dueDay.isBetweenValues(fromDay, toDay))
+            ..orderBy([(t) => OrderingTerm.asc(t.dueDay), (t) => OrderingTerm.asc(t.dueAtUtc)]))
+          .watch();
+
+  /// Tasks that belong in Google Calendar (have a time) or used to.
+  Future<List<Task>> syncCandidates() =>
+      (db.select(db.tasks)..where((t) => t.dueAtUtc.isNotNull() | t.remoteId.isNotNull())).get();
+
+  Future<Task?> byId(int id) => (db.select(db.tasks)..where((t) => t.id.equals(id))).getSingleOrNull();
+
+  /// Writes sync metadata without bumping [Task.updatedAtUtc].
+  Future<void> setRemote(int id, {required String? remoteId, String? etag, DateTime? updated}) =>
+      (db.update(db.tasks)..where((t) => t.id.equals(id))).write(
+        TasksCompanion(remoteId: Value(remoteId), remoteEtag: Value(etag), remoteUpdated: Value(updated)),
+      );
+
+  /// Applies a change made in Google. Keeps timestamps aligned with the remote.
+  Future<void> applyRemote(
+    Task t, {
+    required String title,
+    DateTime? dueAtUtc,
+    required String dueDay,
+    required bool done,
+    required DateTime remoteUpdated,
+    String? etag,
+    required DayClock clock,
+  }) async {
+    if (done != (t.doneAtUtc != null)) {
+      await toggle(t, clock);
+    }
+    await (db.update(db.tasks)..where((x) => x.id.equals(t.id))).write(
+      TasksCompanion(
+        title: Value(title),
+        dueAtUtc: Value(dueAtUtc),
+        dueDay: Value(dueDay),
+        remoteEtag: Value(etag),
+        remoteUpdated: Value(remoteUpdated),
+        updatedAtUtc: Value(remoteUpdated),
+      ),
+    );
+  }
+
   Future<List<Task>> openWithTime() =>
       (db.select(db.tasks)..where((t) => t.doneAtUtc.isNull() & t.dueAtUtc.isNotNull())).get();
 
@@ -73,19 +118,28 @@ class TasksRepo {
           profileId: Value(profileId),
           rrule: Value(repeat.toRRule()),
           createdAtUtc: DateTime.now().toUtc(),
+          updatedAtUtc: Value(DateTime.now().toUtc()),
         ),
       );
 
-  Future<void> update(Task t) => db.update(db.tasks).replace(t);
+  Future<void> update(Task t) => db.update(db.tasks).replace(t.copyWith(updatedAtUtc: Value(DateTime.now().toUtc())));
+
+  /// Calendar events of deleted tasks, removed from Google on the next sync.
+  static const tombstonePrefix = 'gcal-delete:';
 
   Future<void> delete(Task t) async {
+    if (t.remoteId != null) {
+      await db
+          .into(db.syncStates)
+          .insertOnConflictUpdate(SyncStatesCompanion.insert(key: '$tombstonePrefix${t.remoteId}', value: '${t.id}'));
+    }
     if (t.doneDay != null) await xp.set(t.doneDay!, Xp.taskKey(t.id), 0);
     await (db.delete(db.tasks)..where((x) => x.id.equals(t.id))).go();
   }
 
-  Future<void> togglePriority(Task t) => (db.update(
-    db.tasks,
-  )..where((x) => x.id.equals(t.id))).write(TasksCompanion(priority: Value(t.priority > 0 ? 0 : 1)));
+  Future<void> togglePriority(Task t) => (db.update(db.tasks)..where((x) => x.id.equals(t.id))).write(
+    TasksCompanion(priority: Value(t.priority > 0 ? 0 : 1), updatedAtUtc: Value(DateTime.now().toUtc())),
+  );
 
   /// Completes or re-opens a task. Completing a recurring task spawns its next
   /// occurrence; re-opening it removes that spawned copy if still untouched.
@@ -116,12 +170,18 @@ class TasksRepo {
                   profileId: Value(t.profileId),
                   rrule: Value(t.rrule),
                   createdAtUtc: DateTime.now().toUtc(),
+                  updatedAtUtc: Value(DateTime.now().toUtc()),
                 ),
               );
         }
       }
       await (db.update(db.tasks)..where((x) => x.id.equals(t.id))).write(
-        TasksCompanion(doneAtUtc: Value(clock.nowUtc()), doneDay: Value(today), nextId: Value(nextId)),
+        TasksCompanion(
+          doneAtUtc: Value(clock.nowUtc()),
+          doneDay: Value(today),
+          nextId: Value(nextId),
+          updatedAtUtc: Value(clock.nowUtc()),
+        ),
       );
       await xp.set(today, Xp.taskKey(t.id), Xp.task);
     } else {
@@ -130,7 +190,12 @@ class TasksRepo {
       }
       if (t.doneDay != null) await xp.set(t.doneDay!, Xp.taskKey(t.id), 0);
       await (db.update(db.tasks)..where((x) => x.id.equals(t.id))).write(
-        const TasksCompanion(doneAtUtc: Value(null), doneDay: Value(null), nextId: Value(null)),
+        TasksCompanion(
+          doneAtUtc: const Value(null),
+          doneDay: const Value(null),
+          nextId: const Value(null),
+          updatedAtUtc: Value(clock.nowUtc()),
+        ),
       );
     }
   }
@@ -150,9 +215,9 @@ class TasksRepo {
           final l = clock.toLocal(t.dueAtUtc!);
           at = clock.localToUtc(tomorrow, l.hour, l.minute);
         }
-        await (db.update(
-          db.tasks,
-        )..where((x) => x.id.equals(t.id))).write(TasksCompanion(dueDay: Value(tomorrow), dueAtUtc: Value(at)));
+        await (db.update(db.tasks)..where((x) => x.id.equals(t.id))).write(
+          TasksCompanion(dueDay: Value(tomorrow), dueAtUtc: Value(at), updatedAtUtc: Value(clock.nowUtc())),
+        );
       }
     });
     return open.length;

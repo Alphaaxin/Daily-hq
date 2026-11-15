@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,6 +8,7 @@ import '../../../core/providers.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../core/theme/widgets.dart';
 import '../../../core/time/format.dart';
+import '../../google/data/google_jobs.dart';
 import '../data/sleep_repo.dart';
 import '../domain/sleep_logic.dart';
 
@@ -89,6 +92,7 @@ class SleepPanel extends ConsumerWidget {
 Future<void> goodNight(BuildContext context, WidgetRef ref) async {
   await ref.read(sleepRepoProvider).goodNight(ref.read(clockProvider));
   ref.read(reminderSyncProvider).schedule();
+  unawaited(ref.read(googleJobsProvider).backupAfterGoodNight());
   if (context.mounted) showSnack(context, 'Good night 🌙 Reminders are paused until you wake.');
 }
 
