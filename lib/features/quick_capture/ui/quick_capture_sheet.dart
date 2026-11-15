@@ -11,6 +11,7 @@ import '../../sleep/data/sleep_repo.dart';
 import '../../sleep/ui/sleep_panel.dart';
 import '../../tasks/ui/task_widgets.dart';
 import '../../water/data/water_repo.dart';
+import '../../money/ui/quick_log_sheet.dart';
 import '../../water/ui/water_section.dart';
 
 Future<void> showQuickCapture(BuildContext context) => showNSheet(context, (_) => const QuickCaptureSheet());
@@ -30,6 +31,11 @@ class QuickCaptureSheet extends ConsumerWidget {
     void close() => Navigator.of(context).pop();
 
     final tiles = <Widget>[
+      if (s.on(Module.money))
+        _Tile(Icons.currency_rupee_rounded, 'Expense', N.bad, () {
+          close();
+          showQuickLog(context);
+        }),
       if (s.on(Module.tasks))
         _Tile(Icons.check_circle_outline_rounded, 'Task', N.gold, () {
           close();
@@ -91,12 +97,7 @@ class QuickCaptureSheet extends ConsumerWidget {
                 style: TextStyle(fontFamily: N.display, fontWeight: FontWeight.w700, color: N.gold, fontSize: 18),
               ),
               const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Money quick-log, notes, leads and meeting recording arrive in Phases 2–3.',
-                  style: N.small,
-                ),
-              ),
+              Expanded(child: Text('Notes, leads and meeting recording arrive in Phase 3.', style: N.small)),
             ],
           ),
         ),

@@ -16,7 +16,9 @@ import '../../profiles/data/profiles_repo.dart';
 import '../../salah/data/salah_repo.dart';
 import '../../salah/domain/prayer_times.dart';
 import '../../sleep/data/sleep_repo.dart';
+import '../../routines/data/routines_repo.dart';
 import '../../sleep/domain/sleep_logic.dart';
+import '../../../core/theme/dialogs.dart';
 import 'sleep_chart.dart';
 
 class MeScreen extends ConsumerWidget {
@@ -29,6 +31,8 @@ class MeScreen extends ConsumerWidget {
       children: const [
         _StatsCard(),
         SizedBox(height: N.gap),
+        _LinksCard(),
+        SizedBox(height: N.gap),
         _SleepStatsCard(),
         SizedBox(height: N.gap),
         _SettingsCard(),
@@ -36,6 +40,10 @@ class MeScreen extends ConsumerWidget {
         _ProfilesCard(),
         SizedBox(height: N.gap),
         _HabitsCard(),
+        SizedBox(height: N.gap),
+        _RoutinesCard(),
+        SizedBox(height: N.gap),
+        _AzanCard(),
         SizedBox(height: N.gap),
         _ModulesCard(),
         SizedBox(height: N.gap),
@@ -229,7 +237,7 @@ class _SettingsCard extends ConsumerWidget {
             'Your name',
             s.name,
             onTap: () async {
-              final v = await _askText(context, 'Your name', s.name);
+              final v = await askText(context, 'Your name', s.name);
               if (v != null && v.trim().isNotEmpty) set('name', v.trim());
             },
           ),
@@ -238,7 +246,7 @@ class _SettingsCard extends ConsumerWidget {
             hr(s.rolloverHour),
             sub: 'A Good Night before this counts for the previous day',
             onTap: () async {
-              final v = await _askInt(context, 'Day starts at (hour)', s.rolloverHour, 0, 12, fmt: hr);
+              final v = await askInt(context, 'Day starts at (hour)', s.rolloverHour, 0, 12, fmt: hr);
               if (v != null) set('rolloverHour', v);
             },
           ),
@@ -246,7 +254,7 @@ class _SettingsCard extends ConsumerWidget {
             'Time zone',
             s.timezone,
             onTap: () async {
-              final v = await _askText(context, 'IANA time zone', s.timezone);
+              final v = await askText(context, 'IANA time zone', s.timezone);
               if (v != null && v.contains('/')) set('timezone', v.trim());
             },
           ),
@@ -254,7 +262,7 @@ class _SettingsCard extends ConsumerWidget {
             'Sleep target',
             '${s.sleepTargetHours}h',
             onTap: () async {
-              final v = await _askInt(
+              final v = await askInt(
                 context,
                 'Sleep target (×30 min)',
                 (s.sleepTargetHours * 2).round(),
@@ -270,7 +278,7 @@ class _SettingsCard extends ConsumerWidget {
             'Water goal',
             '${s.waterGoal} glasses',
             onTap: () async {
-              final v = await _askInt(context, 'Water goal (glasses)', s.waterGoal, 2, 20);
+              final v = await askInt(context, 'Water goal (glasses)', s.waterGoal, 2, 20);
               if (v != null) set('waterGoal', v);
             },
           ),
@@ -278,7 +286,7 @@ class _SettingsCard extends ConsumerWidget {
             'Water reminder every',
             '${s.waterIntervalMin} min',
             onTap: () async {
-              final v = await _askInt(
+              final v = await askInt(
                 context,
                 'Remind every (min)',
                 s.waterIntervalMin ~/ 15,
@@ -295,9 +303,9 @@ class _SettingsCard extends ConsumerWidget {
             'Quiet hours',
             '${hr(s.quietStart)} → ${hr(s.quietEnd)}',
             onTap: () async {
-              final a = await _askInt(context, 'Quiet from', s.quietStart, 0, 23, fmt: hr);
+              final a = await askInt(context, 'Quiet from', s.quietStart, 0, 23, fmt: hr);
               if (a == null || !context.mounted) return;
-              final b = await _askInt(context, 'Quiet until', s.quietEnd, 0, 23, fmt: hr);
+              final b = await askInt(context, 'Quiet until', s.quietEnd, 0, 23, fmt: hr);
               if (b == null) return;
               await repo.set('quietStart', a);
               set('quietEnd', b);
@@ -334,7 +342,7 @@ class _SettingsCard extends ConsumerWidget {
             '${s.latitude.toStringAsFixed(3)}, ${s.longitude.toStringAsFixed(3)}',
             sub: 'Hyderabad by default',
             onTap: () async {
-              final v = await _askText(context, 'Latitude, longitude', '${s.latitude}, ${s.longitude}');
+              final v = await askText(context, 'Latitude, longitude', '${s.latitude}, ${s.longitude}');
               final p = v?.split(',').map((e) => double.tryParse(e.trim())).toList();
               if (p != null && p.length == 2 && p[0] != null && p[1] != null) {
                 await repo.set('latitude', p[0]);
@@ -426,54 +434,6 @@ class _Switch extends StatelessWidget {
   );
 }
 
-Future<String?> _askText(BuildContext context, String title, String initial) {
-  final c = TextEditingController(text: initial);
-  return showDialog<String>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: Text(title, style: N.h2),
-      content: TextField(controller: c, autofocus: true, onSubmitted: (v) => Navigator.pop(ctx, v)),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx),
-          child: const Text('Cancel', style: TextStyle(color: N.muted)),
-        ),
-        NButton('Save', onTap: () => Navigator.pop(ctx, c.text)),
-      ],
-    ),
-  );
-}
-
-Future<int?> _askInt(BuildContext context, String title, int initial, int min, int max, {String Function(int)? fmt}) {
-  var v = initial.clamp(min, max);
-  return showDialog<int>(
-    context: context,
-    builder: (ctx) => StatefulBuilder(
-      builder: (ctx, setState) => AlertDialog(
-        title: Text(title, style: N.h2),
-        content: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            IconBtn(Icons.remove_rounded, onTap: () => setState(() => v = (v - 1).clamp(min, max))),
-            SizedBox(
-              width: 120,
-              child: Text(fmt?.call(v) ?? '$v', textAlign: TextAlign.center, style: N.num(22)),
-            ),
-            IconBtn(Icons.add_rounded, onTap: () => setState(() => v = (v + 1).clamp(min, max))),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: N.muted)),
-          ),
-          NButton('Save', onTap: () => Navigator.pop(ctx, v)),
-        ],
-      ),
-    ),
-  );
-}
-
 /// Shared list editor for profiles and habits.
 class _ListEditor extends StatelessWidget {
   const _ListEditor({
@@ -502,7 +462,7 @@ class _ListEditor extends StatelessWidget {
           title,
           trailing: GestureDetector(
             onTap: () async {
-              final v = await _askText(context, hint, '');
+              final v = await askText(context, hint, '');
               if (v != null && v.trim().isNotEmpty) onAdd(v.trim());
             },
             child: const Text(
@@ -525,7 +485,7 @@ class _ListEditor extends StatelessWidget {
                   tooltip: 'Rename',
                   icon: const Icon(Icons.edit_outlined, size: 18, color: N.muted),
                   onPressed: () async {
-                    final v = await _askText(context, 'Rename', name);
+                    final v = await askText(context, 'Rename', name);
                     if (v != null && v.trim().isNotEmpty) onRename(id, v.trim());
                   },
                 ),
@@ -651,8 +611,175 @@ class _SetupCard extends StatelessWidget {
           onTap: () => context.push('/setup'),
         ),
         const SizedBox(height: 14),
-        Center(child: Text('Nizam · Phase 1 · all data stays on this phone', style: N.small.copyWith(fontSize: 12))),
+        Center(child: Text('Solo Leveling · all data stays on this phone', style: N.small.copyWith(fontSize: 12))),
       ],
     ),
   );
+}
+
+class _LinksCard extends ConsumerWidget {
+  const _LinksCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = ref.watch(settingsProvider);
+    Widget link(IconData icon, String title, String sub, String route) => InkWell(
+      onTap: () => context.push(route),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 56),
+        decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: N.line)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: N.gold, size: 22),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                  Text(sub, style: N.small.copyWith(fontSize: 12)),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: N.muted),
+          ],
+        ),
+      ),
+    );
+    return GlassCard(
+      padding: const EdgeInsets.fromLTRB(18, 8, 18, 4),
+      child: Column(
+        children: [
+          link(
+            Icons.cloud_outlined,
+            'Google account & backup',
+            s.googleEmail.isEmpty ? 'Calendar sync and Drive backup are off' : s.googleEmail,
+            '/google',
+          ),
+          link(Icons.calendar_month_outlined, 'Calendar', 'Tasks and events by day, week or month', '/calendar'),
+          if (s.on(Module.focus))
+            link(Icons.timer_outlined, 'Focus & Build Hour', 'Pomodoro, work timer, ideas', '/focus'),
+          if (s.on(Module.focus))
+            link(Icons.schedule_rounded, 'Time log', 'Retainer hours per profile · CSV / PDF', '/time'),
+          if (s.on(Module.targets))
+            link(Icons.flag_outlined, 'Daily targets', 'Leads, emails, research quotas', '/targets'),
+          if (s.on(Module.money))
+            link(
+              Icons.account_balance_wallet_outlined,
+              'Money settings',
+              'Categories, budgets, quick-log',
+              '/money-settings',
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RoutinesCard extends ConsumerWidget {
+  const _RoutinesCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = ref.watch(settingsProvider);
+    if (!s.on(Module.routines)) return const SizedBox.shrink();
+    final repo = ref.read(routinesRepoProvider);
+    final morning = ref.watch(morningItemsProvider).value ?? const <RoutineItem>[];
+    final evening = ref.watch(eveningItemsProvider).value ?? const <RoutineItem>[];
+    return Column(
+      children: [
+        _ListEditor(
+          title: 'Morning routine',
+          hint: 'New morning step',
+          items: [for (final i in morning) (i.id, i.name)],
+          onAdd: (n) => repo.add(Routine.morning, n),
+          onRename: repo.rename,
+          onArchive: repo.archive,
+        ),
+        const SizedBox(height: N.gap),
+        _ListEditor(
+          title: 'Evening shutdown',
+          hint: 'New evening step',
+          items: [for (final i in evening) (i.id, i.name)],
+          onAdd: (n) => repo.add(Routine.evening, n),
+          onRename: repo.rename,
+          onArchive: repo.archive,
+        ),
+        const SizedBox(height: N.gap),
+        GlassCard(
+          padding: const EdgeInsets.fromLTRB(18, 6, 18, 6),
+          child: _Tile(
+            'Evening shutdown starts at',
+            fmtClock(s.eveningHour * 60),
+            onTap: () async {
+              final v = await askInt(
+                context,
+                'Evening shutdown from',
+                s.eveningHour,
+                17,
+                23,
+                fmt: (h) => fmtClock(h * 60),
+              );
+              if (v != null) await ref.read(settingsRepoProvider).set('eveningHour', v);
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AzanCard extends ConsumerWidget {
+  const _AzanCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = ref.watch(settingsProvider);
+    if (!s.on(Module.salah)) return const SizedBox.shrink();
+    final repo = ref.read(settingsRepoProvider);
+    Future<void> set(String k, Object v) async {
+      await repo.set(k, v);
+      ref.read(reminderSyncProvider).schedule();
+    }
+
+    return GlassCard(
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const CardHeader('Prayer notifications'),
+          _Switch(
+            'Chime at prayer times',
+            s.azan,
+            (v) => set('azan', v),
+            sub: 'With a "Prayed ✓" button that marks it on time',
+          ),
+          if (s.azan) ...[
+            _Switch('Reminder 10 min before', s.azanBefore, (v) => set('azanBefore', v)),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final p in Prayer.values)
+                  NChip(
+                    p.label,
+                    on: !s.azanOff.contains(p.name),
+                    onTap: () {
+                      final off = {...s.azanOff};
+                      off.contains(p.name) ? off.remove(p.name) : off.add(p.name);
+                      set('azanOff', off.toList());
+                    },
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+          ],
+        ],
+      ),
+    );
+  }
 }

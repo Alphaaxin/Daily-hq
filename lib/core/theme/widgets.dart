@@ -22,6 +22,10 @@ class GlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return NoQuickTap(child: _card());
+  }
+
+  Widget _card() {
     return ClipRRect(
       borderRadius: BorderRadius.circular(N.r),
       child: BackdropFilter(
@@ -381,6 +385,8 @@ class EmptyNote extends StatelessWidget {
 Future<T?> showNSheet<T>(BuildContext context, Widget Function(BuildContext) builder) => showModalBottomSheet<T>(
   context: context,
   isScrollControlled: true,
+  // Above the tab bar and the ₹ button, not inside the tab.
+  useRootNavigator: true,
   useSafeArea: true,
   builder: (ctx) => Padding(
     padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
@@ -396,4 +402,17 @@ void showSnack(BuildContext context, String msg) {
         content: Text(msg, style: const TextStyle(color: N.ink)),
       ),
     );
+}
+
+/// Marker placed on every card, sheet and button area so their taps never
+/// count towards the "tap empty space" gesture.
+const kNoQuickTap = 'nizam.no-quick-tap';
+
+class NoQuickTap extends StatelessWidget {
+  const NoQuickTap({super.key, required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) =>
+      MetaData(metaData: kNoQuickTap, behavior: HitTestBehavior.translucent, child: child);
 }

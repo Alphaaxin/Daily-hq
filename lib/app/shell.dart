@@ -1,10 +1,15 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/theme/tokens.dart';
 import '../core/theme/widgets.dart';
+import '../core/providers.dart';
+import '../core/settings/app_settings.dart';
+import '../features/money/ui/empty_tap_zone.dart';
+import '../features/money/ui/quick_log_sheet.dart';
 import '../features/quick_capture/ui/quick_capture_sheet.dart';
 
 const _tabs = [
@@ -16,13 +21,15 @@ const _tabs = [
 ];
 
 /// Glass top bar, tab content, glass bottom nav and the gold ₹ button.
-class AppShell extends StatelessWidget {
+class AppShell extends ConsumerWidget {
   const AppShell({super.key, required this.shell});
   final StatefulNavigationShell shell;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final pad = MediaQuery.of(context).padding;
+    final s = ref.watch(settingsProvider);
+    final money = s.on(Module.money);
     return Scaffold(
       extendBody: true,
       body: DecoratedBox(
@@ -36,13 +43,23 @@ class AppShell extends StatelessWidget {
         child: Column(
           children: [
             _TopBar(top: pad.top),
-            Expanded(child: shell),
+            Expanded(
+              child: EmptyTapZone(
+                enabled: money,
+                taps: s.quickLogTaps,
+                onTrigger: () => showQuickLog(context),
+                child: shell,
+              ),
+            ),
           ],
         ),
       ),
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 4),
-        child: _GoldFab(onTap: () => showQuickCapture(context)),
+        child: _GoldFab(
+          onTap: () => money ? showQuickLog(context) : showQuickCapture(context),
+          onLongPress: () => showQuickCapture(context),
+        ),
       ),
       bottomNavigationBar: _BottomNav(
         index: shell.currentIndex,
@@ -81,11 +98,17 @@ class _TopBar extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 10),
-            const GoldText(
-              'NIZAM',
-              style: TextStyle(fontFamily: N.display, fontWeight: FontWeight.w700, fontSize: 15, letterSpacing: 3.3),
+            const Expanded(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: GoldText(
+                  'SOLO LEVELING',
+                  style: TextStyle(fontFamily: N.display, fontWeight: FontWeight.w700, fontSize: 15, letterSpacing: 2.2),
+                ),
+              ),
             ),
-            const Spacer(),
+            const SizedBox(width: 10),
             const Row(
               children: [
                 SizedBox(
@@ -107,17 +130,22 @@ class _TopBar extends StatelessWidget {
 }
 
 class _GoldFab extends StatelessWidget {
-  const _GoldFab({required this.onTap});
+  const _GoldFab({required this.onTap, required this.onLongPress});
   final VoidCallback onTap;
+  final VoidCallback onLongPress;
 
   @override
   Widget build(BuildContext context) => Semantics(
     button: true,
-    label: 'Quick capture',
+    label: 'Log money. Long-press for quick capture',
     child: GestureDetector(
       onTap: () {
         Haptic.light();
         onTap();
+      },
+      onLongPress: () {
+        Haptic.win();
+        onLongPress();
       },
       child: Container(
         width: 60,

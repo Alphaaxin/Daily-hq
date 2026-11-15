@@ -125,8 +125,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> with WidgetsBindingOb
         n: 3,
         title: 'Turn off battery optimisation',
         body:
-            'Choose "Don\'t optimise" / "Allow" for Nizam. On OriginOS also check Settings → Battery → '
-            'Background power consumption management → Nizam → Allow background high power consumption.',
+            'Choose "Don\'t optimise" / "Allow" for Solo Leveling. On OriginOS also check Settings → Battery → '
+            'Background power consumption management → Solo Leveling → Allow background high power consumption.',
         done: _battery,
         action: 'Open',
         onTap: () async {
@@ -138,8 +138,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> with WidgetsBindingOb
         n: 4,
         title: 'Allow Autostart',
         body:
-            'i Manager → App manager → Autostart → switch on Nizam. If the screen doesn\'t open, go to '
-            'Settings → Apps → Autostart. Vivo also offers "Lock" in recent apps: pull Nizam down to lock it.',
+            'i Manager → App manager → Autostart → switch on Solo Leveling. If the screen doesn\'t open, go to '
+            'Settings → Apps → Autostart. Vivo also offers "Lock" in recent apps: pull Solo Leveling down to lock it.',
         done: s.autostartConfirmed,
         action: 'Open',
         onTap: _openAutostart,
@@ -180,7 +180,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> with WidgetsBindingOb
                     decoration: BoxDecoration(gradient: N.goldGradient, borderRadius: BorderRadius.circular(8)),
                   ),
                   const SizedBox(width: 10),
-                  Text('NIZAM', style: N.h2.copyWith(letterSpacing: 4)),
+                  Text('SOLO LEVELING', style: N.h2.copyWith(letterSpacing: 4)),
                 ],
               ),
               const SizedBox(height: 22),
@@ -191,7 +191,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> with WidgetsBindingOb
               ),
               const SizedBox(height: 10),
               Text(
-                'Vivo\'s battery manager stops background apps. Five quick switches and Nizam will always reach you.',
+                'Vivo\'s battery manager stops background apps. Five quick switches and Solo Leveling will always reach you.',
                 style: N.small.copyWith(fontSize: 14),
               ),
               const SizedBox(height: 20),
@@ -199,7 +199,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> with WidgetsBindingOb
             for (final st in steps) ...[st, const SizedBox(height: 10)],
             const SizedBox(height: 10),
             NButton(
-              allDone ? 'All set: open Nizam' : (widget.firstRun ? 'Continue' : 'Done'),
+              allDone ? 'All set: open Solo Leveling' : (widget.firstRun ? 'Continue' : 'Done'),
               expand: true,
               onTap: _finish,
             ),

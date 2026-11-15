@@ -18,6 +18,10 @@ class NotificationService {
   Stream<NotificationResponse> get taps => _taps.stream;
 
   static const waterBase = 1000; // 1000..1019
+  static const focusOngoingId = 5000;
+  static const focusDoneId = 5001;
+  static const eyeBase = 5010; // 5010..5019
+  static const azanBase = 6000; // 6000..6029 (3 days × 5 prayers × 2)
   static const bedtimeId = 3000;
   static const taskBase = 100000; // + task id
 
@@ -46,6 +50,125 @@ class NotificationService {
     importance: Importance.defaultImportance,
     category: AndroidNotificationCategory.reminder,
   );
+
+  static const _general = AndroidNotificationDetails(
+    'general',
+    'Nudges & alerts',
+    channelDescription: 'Budget alerts, backups and other one-off nudges',
+    importance: Importance.high,
+    priority: Priority.high,
+  );
+
+  static const _focusDone = AndroidNotificationDetails(
+    'focus',
+    'Focus timer',
+    channelDescription: 'Pomodoro and Build Hour alerts',
+    importance: Importance.max,
+    priority: Priority.max,
+    category: AndroidNotificationCategory.alarm,
+  );
+  static const _eye = AndroidNotificationDetails(
+    'eyes',
+    '20-20-20 breaks',
+    channelDescription: 'Look 20 feet away for 20 seconds every 20 minutes of focus',
+    importance: Importance.defaultImportance,
+  );
+
+  /// Ongoing "timer running" notification with a live chronometer.
+  Future<void> showFocusOngoing({required String title, required int startMs, required bool paused}) async {
+    if (!_ready) return;
+    await _plugin.show(
+      id: focusOngoingId,
+      title: title,
+      body: paused ? 'Paused · tap to resume' : 'Running · tap to open',
+      payload: 'focus',
+      notificationDetails: NotificationDetails(
+        android: AndroidNotificationDetails(
+          'focus_ongoing',
+          'Running timer',
+          channelDescription: 'Shows the Build Hour / Pomodoro / work timer while it runs',
+          importance: Importance.low,
+          priority: Priority.low,
+          ongoing: true,
+          autoCancel: false,
+          onlyAlertOnce: true,
+          showWhen: !paused,
+          usesChronometer: !paused,
+          when: startMs,
+          category: AndroidNotificationCategory.stopwatch,
+          actions: [
+            AndroidNotificationAction(
+              paused ? 'focus_resume' : 'focus_pause',
+              paused ? 'Resume' : 'Pause',
+              showsUserInterface: true,
+            ),
+            const AndroidNotificationAction('focus_stop', 'Stop', showsUserInterface: true),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> cancelFocus() async {
+    if (!_ready) return;
+    await _plugin.cancel(id: focusOngoingId);
+    await _plugin.cancel(id: focusDoneId);
+    for (var i = 0; i < 10; i++) {
+      await _plugin.cancel(id: eyeBase + i);
+    }
+  }
+
+  Future<void> scheduleFocusDone(DateTime utc, String title, String body) =>
+      _at(focusDoneId, utc, title, body, _focusDone, payload: 'focus');
+
+  Future<void> scheduleEyeBreaks(List<DateTime> times) async {
+    for (var i = 0; i < times.length && i < 10; i++) {
+      await _at(
+        eyeBase + i,
+        times[i],
+        '20-20-20 👀',
+        'Look at something 20 feet away for 20 seconds. Roll your shoulders.',
+        _eye,
+        payload: 'focus',
+      );
+    }
+  }
+
+  static const _azan = AndroidNotificationDetails(
+    'azan',
+    'Prayer times',
+    channelDescription: 'A chime at each prayer time',
+    importance: Importance.max,
+    priority: Priority.high,
+    category: AndroidNotificationCategory.reminder,
+    actions: [AndroidNotificationAction('salah_done', 'Prayed ✓', showsUserInterface: true)],
+  );
+
+  Future<void> scheduleAzan(List<(int, DateTime, String, String, String)> alerts) async {
+    await cancelAzan();
+    for (final (id, at, title, body, payload) in alerts) {
+      await _at(id, at, title, body, _azan, payload: payload);
+    }
+  }
+
+  Future<void> cancelAzan() async {
+    if (!_ready) return;
+    for (var i = 0; i < 30; i++) {
+      await _plugin.cancel(id: azanBase + i);
+    }
+  }
+
+  /// Shows a notification right away (budget alerts, backup prompts…).
+  Future<void> showNow(int id, String title, String body, {String? payload}) async {
+    if (!_ready) return;
+    await _plugin.show(
+      id: id,
+      title: title,
+      body: body,
+      notificationDetails: const NotificationDetails(android: _general),
+      payload: payload,
+    );
+  }
 
   Future<NotificationAppLaunchDetails?> init() async {
     if (_ready || kIsWeb) return null;

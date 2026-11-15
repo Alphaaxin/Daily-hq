@@ -1,8 +1,12 @@
-# Nizam: personal life OS
+# Solo Leveling: personal life OS
+
+*(Internally the project and Android package are still called `nizam` / `com.habeeb.nizam`, so updates keep installing over the existing app.)*
 
 A gamified command center for one person: plan the day, track sleep, habits, water, prayer and tasks, and earn XP for all of it. It's an Android app built with Flutter that works fully offline and is installed directly as an APK (no Play Store).
 
-**Status: Phase 1 is done.** It includes the app shell and design system, the Today dashboard, Sleep & Wake, local Tasks, work profiles, Habits, Water, Salah with offline prayer times, Mood, XP, levels and streaks, the Rewards Shop, Quick Capture, local notifications and the Vivo phone setup.
+**Status: Phases 1 and 2 are done.**
+- **Phase 1:** app shell and design system, Today, Sleep & Wake, Tasks, work profiles, Habits, Water, Salah with offline prayer times, Mood, XP / levels / streaks, Rewards Shop, Quick Capture, reminders, Vivo phone setup.
+- **Phase 2:** Money (Quick Log from 6 places, dashboard, budgets), Build Hour, Daily Targets, Focus / Pomodoro and retainer time tracking (CSV / PDF), azan chimes, morning and evening routines, Google sign-in with 2-way Calendar sync and Drive backup.
 
 ---
 
@@ -48,17 +52,44 @@ Vivo's battery manager kills background apps aggressively. The in-app **Phone se
 
 If reminders ever stop, re-run Phone setup. OS updates sometimes reset these switches.
 
-## 4. Google Cloud and Gemini (needed from Phase 2)
+## 4. Google Calendar and Drive backup (one-time, about 10 minutes)
 
-Phase 1 needs no accounts or keys. These steps get filled in when Phase 2 adds Google Sign-In:
+Nizam works fully offline without this. Do it once to switch on Calendar sync and Drive backups. You can do every step in Chrome on your phone at **console.cloud.google.com**.
 
-- a Google Cloud project;
-- an OAuth consent screen in *testing* mode with only your account;
-- the Calendar, Gmail and Drive APIs enabled;
-- an Android OAuth client using the SHA-1 of your signing key;
-- a Gemini API key, which you paste **inside the app** so it's stored in Android secure storage.
+1. **Create a project.** Use the project picker → *New project* → name it `Nizam`.
+2. **Enable the APIs.** Go to *APIs & Services → Library* and enable **Google Calendar API** and **Google Drive API**. (Gmail API comes in Phase 3.)
+3. **Set up the consent screen.** Go to *APIs & Services → OAuth consent screen* (newer consoles call it *Google Auth Platform*):
+   - User type **External**, app name `Nizam`, your email as support and developer contact.
+   - Leave it in **Testing**. Under *Test users* / *Audience*, add **your own Gmail address**. Only listed test users can sign in.
+4. **Find your signing SHA-1.** Open the latest **Build APK** run in Actions. The run summary shows *Signing certificate fingerprints*; copy the `SHA1:` value. (The *Generate signing key* file also contains it.)
+5. **Create an Android client.** Go to *Credentials → Create credentials → OAuth client ID → Android*:
+   - Package name: `com.habeeb.nizam`
+   - SHA-1: the value from step 4.
+6. **Create a Web client.** Do *Create credentials → OAuth client ID → Web application* again (name it `Nizam web`, no URLs needed). Copy its **Client ID**, which ends in `.apps.googleusercontent.com`. Android sign-in needs this Web client ID; nothing else does.
+7. **Connect in Nizam.** Go to **Me → Google account & backup → Web client ID**, paste the ID, then tap **Sign in with Google** and allow Calendar and Drive.
 
-`config/nizam.example.json` shows the shape of these settings. **Real keys are never committed.** `.gitignore` blocks `config/*.json`, `*.jks` and `key.properties`.
+What happens next:
+- A calendar called **Nizam** appears in your Google Calendar. Every task with a time is mirrored there, and edits flow both ways: the newest change wins.
+- Your main calendar's events show on Today and in **Calendar**. You can rename or move them from Nizam.
+- Sync runs on app open, a few seconds after any task change, and every 2 hours in the background.
+- **Backups** go to Drive's hidden app folder. They run right after **Good Night** and again at **10 AM** as a safety net, and the newest 14 are kept. Restore from the same screen.
+- If the 10 AM run can't sign in from the background, you'll get a *Tap to back up* notification instead.
+
+Gemini (for Phase 3) will also be pasted **inside the app** and stored in Android secure storage. `config/nizam.example.json` shows the shape of these settings. **Real keys are never committed.** `.gitignore` blocks `config/*.json`, `*.jks` and `key.properties`.
+
+## 5. The ₹ Quick Log, everywhere
+
+- **In the app:** tap the gold **₹** button, or **tap empty space 4 times** quickly (Me → Money settings changes the count). Long-press ₹ for Quick Capture.
+- **Quick Settings tile:** pull down the shade twice → edit (pencil) → drag **₹ Log money** into your tiles. It opens the popup over whatever app you're in.
+- **Home-screen widget:** long-press the home screen → Widgets → **Nizam → Log money**.
+- **Floating bubble:** Me → Money settings → *Floating ₹ bubble*. It needs *Display over other apps*. Drag it anywhere, and tap it to log.
+- **App shortcut:** long-press the Nizam icon → **Log money**.
+- **Natural input:** `250 chai`, `5000 SIP`, `+40000 retainer`, `1.5k uber` and `2L gold` fill in the amount, type and category for you.
+
+## 6. Focus extras
+
+- **Do Not Disturb during Pomodoro:** switch it on in Focus. The first time, Android asks you to allow Nizam under *Do Not Disturb access*.
+- **Retainer hours:** start a *Work timer* or add time manually, tagged with a profile. **Time log** totals each profile by week or month and exports **CSV / PDF** to WhatsApp, Gmail, Drive and so on.
 
 ---
 
@@ -109,15 +140,11 @@ NIZAM_SHOTS=/tmp/shots flutter test test/widget            # optional: phone-siz
 flutter build apk --release
 ```
 
-CI uses Flutter **3.35.7**. The prayer-time tests check `adhan` against an independent implementation of the solar formulas, to within 2½ minutes.
+CI uses Flutter **3.35.7**. The `drift_schemas/` folder holds a snapshot of each database version; `test/data/migration_test.dart` upgrades a real v1 database to v2 to prove migrations keep your data. The prayer-time tests check `adhan` against an independent implementation of the solar formulas, to within 2½ minutes.
 
 ## Roadmap
 
-- **Phase 2:**
-  - Money: Quick Log, its entry points (Quick Settings tile, bubble, widget, 4-tap) and the dashboard.
-  - Google Sign-In, Calendar 2-way sync and Drive backup.
-  - Build Hour, Daily Targets, Focus mode and retainer time tracking.
-  - Azan notifications and routines.
+- **Phase 2:** done (see Status above).
 - **Phase 3:**
   - Notes with templates and voice capture.
   - Meeting recorder that produces Minutes of Meeting with Gemini.

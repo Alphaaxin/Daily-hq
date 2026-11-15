@@ -9,12 +9,19 @@ import '../../../core/theme/widgets.dart';
 import '../../../core/time/format.dart';
 import '../../gamification/data/life_score_provider.dart';
 import '../../gamification/data/xp_repo.dart';
+import '../../focus/ui/build_hour_row.dart';
+import '../../google/ui/today_events.dart';
 import '../../habits/ui/habits_section.dart';
+import '../../money/data/money_repo.dart';
+import '../../money/domain/money_parser.dart';
 import '../../mood/ui/mood_section.dart';
 import '../../salah/ui/salah_section.dart';
 import '../../sleep/data/sleep_repo.dart';
 import '../../sleep/domain/sleep_logic.dart';
+import '../../routines/data/routines_repo.dart';
+import '../../routines/ui/routine_cards.dart';
 import '../../sleep/ui/sleep_panel.dart';
+import '../../targets/ui/targets_section.dart';
 import '../../tasks/ui/task_widgets.dart';
 import '../../water/ui/water_section.dart';
 
@@ -24,21 +31,30 @@ class TodayScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final s = ref.watch(settingsProvider);
+    // Optional cards (banner, routines) carry their own bottom gap and
+    // collapse to nothing when hidden; the core cards get a gap here.
+    Widget gap(Widget w) => Padding(
+      padding: const EdgeInsets.only(bottom: N.gap),
+      child: w,
+    );
     final cards = <Widget>[
       const _SleepPromptBanner(),
-      const _HeroCard(),
-      const _FocusCard(),
-      if (s.on(Module.tasks)) const TasksCard(),
+      const MorningRoutineCard(),
+      const EveningShutdownCard(),
+      gap(const _HeroCard()),
+      gap(const _FocusCard()),
+      if (s.on(Module.tasks)) gap(const TasksCard()),
       if (s.on(Module.water) || s.on(Module.habits) || s.on(Module.salah) || s.on(Module.mood)) const _BodySoulCard(),
     ];
-    return ListView.separated(
+    return ListView(
       padding: EdgeInsets.fromLTRB(16, 12, 16, 120 + MediaQuery.of(context).padding.bottom),
-      itemCount: cards.length,
-      separatorBuilder: (_, _) => const SizedBox(height: N.gap),
-      itemBuilder: (_, i) => cards[i]
-          .animate()
-          .fadeIn(duration: 260.ms, delay: (40 * i).ms)
-          .slideY(begin: .04, end: 0, duration: 260.ms, delay: (40 * i).ms, curve: Curves.easeOut),
+      children: [
+        for (var i = 0; i < cards.length; i++)
+          cards[i]
+              .animate()
+              .fadeIn(duration: 260.ms, delay: (40 * i).ms)
+              .slideY(begin: .04, end: 0, duration: 260.ms, delay: (40 * i).ms, curve: Curves.easeOut),
+      ],
     );
   }
 }
@@ -91,6 +107,8 @@ class _HeroCard extends ConsumerWidget {
                         Pill('Lv ${lvl.level} · ${lvl.name}', hot: true),
                         Pill(streak > 0 ? '🔥 $streak-day streak' : 'Start a streak'),
                         Pill('+$xpToday XP', mono: true),
+                        if (ref.watch(morningCompleteProvider)) const Pill('×1.2 XP', hot: true),
+                        if (s.on(Module.money)) Pill('${formatInr(ref.watch(todaySpentProvider))} spent', mono: true),
                       ],
                     ),
                   ],
@@ -162,24 +180,9 @@ class _FocusCard extends ConsumerWidget {
               ],
             ),
           ],
-          SubSection(
-            child: Row(
-              children: [
-                const Icon(Icons.rocket_launch_outlined, size: 20, color: N.muted),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Eyebrow('Build Hour · Daily targets'),
-                      const SizedBox(height: 2),
-                      Text('Timer, idea picker and lead/email quotas arrive in Phase 2.', style: N.small),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+          if (s.on(Module.focus)) const SubSection(child: BuildHourRow()),
+          if (s.on(Module.targets)) const SubSection(child: TargetsSection()),
+          const TodayEventsSection(),
         ],
       ),
     );
@@ -227,27 +230,30 @@ class _SleepPromptBanner extends ConsumerWidget {
       dismissedFor: s.sleepPromptDismissed,
     );
     if (prompt == SleepPrompt.none) return const SizedBox.shrink();
-    return GlassCard(
-      child: Row(
-        children: [
-          const Icon(Icons.nights_stay_outlined, color: N.night),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(prompt == SleepPrompt.askWake ? 'Still asleep? 😄' : 'Forgot to log sleep?', style: N.h2),
-                const SizedBox(height: 2),
-                Text('What time did you sleep / wake?', style: N.small),
-              ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: N.gap),
+      child: GlassCard(
+        child: Row(
+          children: [
+            const Icon(Icons.nights_stay_outlined, color: N.night),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(prompt == SleepPrompt.askWake ? 'Still asleep? 😄' : 'Forgot to log sleep?', style: N.h2),
+                  const SizedBox(height: 2),
+                  Text('What time did you sleep / wake?', style: N.small),
+                ],
+              ),
             ),
-          ),
-          TextButton(
-            onPressed: () => ref.read(settingsRepoProvider).set('sleepPromptDismissed', ref.read(todayProvider)),
-            child: const Text('Skip', style: TextStyle(color: N.muted)),
-          ),
-          NButton('Log', onTap: () => showLogSleepSheet(context)),
-        ],
+            TextButton(
+              onPressed: () => ref.read(settingsRepoProvider).set('sleepPromptDismissed', ref.read(todayProvider)),
+              child: const Text('Skip', style: TextStyle(color: N.muted)),
+            ),
+            NButton('Log', onTap: () => showLogSleepSheet(context)),
+          ],
+        ),
       ),
     );
   }

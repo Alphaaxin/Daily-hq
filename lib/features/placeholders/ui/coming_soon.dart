@@ -77,18 +77,6 @@ class ComingSoonScreen extends StatelessWidget {
   );
 }
 
-const moneyComingSoon = ComingSoonScreen(
-  title: 'Money',
-  phase: 'Phase 2',
-  icon: Icons.currency_rupee_rounded,
-  points: [
-    'Quick Log with the number pad open instantly: "250 chai", "5000 SIP", "+40000 retainer", "1.5k uber"',
-    'Spent / Invested / Received, category budgets and alerts near the limit',
-    'Open it from the ₹ button, a 4-tap on empty space, a Quick Settings tile, widget or app shortcut',
-    'Monthly dashboard: left over, category breakdown, daily graph, investment trend',
-  ],
-);
-
 const notesComingSoon = ComingSoonScreen(
   title: 'Notes · Brain',
   phase: 'Phase 3',
