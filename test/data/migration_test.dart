@@ -18,7 +18,7 @@ void main() {
       "INSERT INTO tasks (title, created_at_utc, priority, tags) VALUES ('Keep me', 1763200000, 0, '')",
     );
     final db = AppDb(schema.newConnection());
-    await verifier.migrateAndValidate(db, 2);
+    await verifier.migrateAndValidate(db, AppDb.currentSchema);
 
     final tasks = await db.select(db.tasks).get();
     expect(tasks.single.title, 'Keep me');
@@ -32,10 +32,25 @@ void main() {
     await db.close();
   });
 
-  test('fresh install creates v2 directly', () async {
+  test('upgrade v2 → v3 keeps money data and seeds quests', () async {
+    final schema = await verifier.schemaAt(2);
+    schema.rawDatabase.execute("INSERT INTO categories (name, type, sort, archived) VALUES ('Food', 'spent', 0, 0)");
+    schema.rawDatabase.execute(
+      "INSERT INTO money_entries (amount_paise, type, category_id, note, at_utc, day) VALUES (25000, 'spent', 1, 'chai', 1763200000, '2026-11-15')",
+    );
+    final db = AppDb(schema.newConnection());
+    await verifier.migrateAndValidate(db, 3);
+    expect((await db.select(db.moneyEntries).get()).single.note, 'chai');
+    expect(await db.select(db.quests).get(), hasLength(12));
+    expect(await db.select(db.bosses).get(), isNotEmpty);
+    expect(await db.select(db.mailTemplates).get(), hasLength(1));
+    await db.close();
+  });
+
+  test('fresh install creates the latest schema directly', () async {
     final db = openMemoryDb();
     expect(await db.select(db.categories).get(), isNotEmpty);
-    expect(await db.customSelect('PRAGMA user_version').map((r) => r.read<int>('user_version')).getSingle(), 2);
+    expect(await db.customSelect('PRAGMA user_version').map((r) => r.read<int>('user_version')).getSingle(), AppDb.currentSchema);
     await db.close();
   });
 }

@@ -1,7 +1,11 @@
 package com.habeeb.nizam
 
 import android.app.Activity
+import android.app.AppOpsManager
 import android.app.NotificationManager
+import android.app.usage.UsageStatsManager
+import android.content.pm.ApplicationInfo
+import android.os.Process
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -57,6 +61,39 @@ object NativeChannel {
                             result.success(true)
                         }
                     }
+                    "startRecording" -> {
+                        val dir = call.argument<String>("dir")!!
+                        val title = call.argument<String>("title") ?: "Recording"
+                        result.success(RecordingService.start(ctx, dir, title))
+                    }
+                    "stopRecording" -> result.success(RecordingService.stop(ctx))
+                    "recordingStatus" -> result.success(
+                        mapOf(
+                            "recording" to RecordingService.recording,
+                            "startedAt" to RecordingService.startedAt,
+                            "parts" to synchronized(RecordingService.parts) { RecordingService.parts.toList() },
+                        )
+                    )
+                    "hasUsageAccess" -> result.success(hasUsageAccess(ctx))
+                    "requestUsageAccess" -> {
+                        activity.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                        result.success(true)
+                    }
+                    "usageSince" -> {
+                        if (!hasUsageAccess(ctx)) {
+                            result.success(emptyList<Map<String, Any>>())
+                        } else {
+                            val from = (call.arguments as Number).toLong()
+                            result.success(usageSince(ctx, from))
+                        }
+                    }
+                    "takeLaunch" -> result.success(LaunchData.take())
+                    "updateWidgets" -> {
+                        @Suppress("UNCHECKED_CAST")
+                        val m = (call.arguments as Map<String, Any?>).mapValues { it.value?.toString() ?: "" }
+                        TodayWidgetProvider.push(ctx, m)
+                        result.success(true)
+                    }
                     "finishPopup" -> {
                         if (onFinishPopup != null) {
                             onFinishPopup()
@@ -71,6 +108,34 @@ object NativeChannel {
                 result.error("native", e.message, null)
             }
         }
+    }
+
+    private fun hasUsageAccess(ctx: Context): Boolean {
+        val ops = ctx.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+        val mode = if (Build.VERSION.SDK_INT >= 29) {
+            ops.unsafeCheckOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), ctx.packageName)
+        } else {
+            @Suppress("DEPRECATION")
+            ops.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), ctx.packageName)
+        }
+        return mode == AppOpsManager.MODE_ALLOWED
+    }
+
+    /** Foreground time per app since [from] (epoch ms), largest first. */
+    private fun usageSince(ctx: Context, from: Long): List<Map<String, Any>> {
+        val usm = ctx.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+        val stats = usm.queryAndAggregateUsageStats(from, System.currentTimeMillis())
+        val pm = ctx.packageManager
+        return stats.values
+            .filter { it.totalTimeInForeground > 60_000 && it.packageName != ctx.packageName }
+            .sortedByDescending { it.totalTimeInForeground }
+            .take(25)
+            .map {
+                val label = runCatching {
+                    pm.getApplicationLabel(pm.getApplicationInfo(it.packageName, 0)).toString()
+                }.getOrDefault(it.packageName)
+                mapOf("package" to it.packageName, "label" to label, "ms" to it.totalTimeInForeground)
+            }
     }
 
     private fun notifications(ctx: Context) =
