@@ -16,6 +16,9 @@ const googleScopes = [
   gdrive.DriveApi.driveFileScope,
 ];
 
+/// Requested only when you first send e-mail (Phase 3).
+const gmailSendScope = 'https://www.googleapis.com/auth/gmail.send';
+
 class GoogleNotReady implements Exception {
   GoogleNotReady(this.message);
   final String message;
@@ -71,19 +74,30 @@ class GoogleAuth {
 
   /// An authorised HTTP client without any UI, or null if you need to sign
   /// in again (or Google can't be reached from here, e.g. in the background).
-  Future<AuthClient?> client() async {
+  Future<AuthClient?> client({List<String> scopes = googleScopes}) async {
     if (ref.read(settingsProvider).googleEmail.isEmpty) return null;
     try {
       await _init();
       _account ??= await GoogleSignIn.instance.attemptLightweightAuthentication();
       final acc = _account;
       if (acc == null) return null;
-      final auth = await acc.authorizationClient.authorizationForScopes(googleScopes);
-      return auth?.authClient(scopes: googleScopes);
+      final auth = await acc.authorizationClient.authorizationForScopes(scopes);
+      return auth?.authClient(scopes: scopes);
     } catch (_) {
       return null;
     }
   }
+
+  /// Asks once (interactively) for permission to send e-mail via Gmail.
+  Future<void> authorizeGmail() async {
+    await _init();
+    _account ??= await GoogleSignIn.instance.attemptLightweightAuthentication();
+    _account ??= await GoogleSignIn.instance.authenticate(scopeHint: [...googleScopes, gmailSendScope]);
+    await _account!.authorizationClient.authorizeScopes([gmailSendScope]);
+    await ref.read(settingsRepoProvider).set('gmailGranted', true);
+  }
+
+  Future<AuthClient?> gmailClient() => client(scopes: const [gmailSendScope]);
 }
 
 final googleAuthProvider = Provider((ref) => GoogleAuth(ref));

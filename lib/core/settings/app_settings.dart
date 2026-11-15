@@ -3,7 +3,28 @@ import 'dart:convert';
 import '../db/app_db.dart';
 
 /// Every module that can be switched off in Me → Modules.
-enum Module { sleep, tasks, habits, water, salah, mood, rewards, money, focus, targets, routines }
+enum Module {
+  sleep,
+  tasks,
+  habits,
+  water,
+  salah,
+  mood,
+  rewards,
+  money,
+  focus,
+  targets,
+  routines,
+  notes,
+  meetings,
+  people,
+  leads,
+  mail,
+  quests,
+  learning,
+  screenTime,
+  nudges,
+}
 
 extension ModuleLabel on Module {
   String get label => const [
@@ -18,6 +39,15 @@ extension ModuleLabel on Module {
     'Build Hour & Focus',
     'Daily targets',
     'Routines',
+    'Notes',
+    'Meeting recorder',
+    'People & birthdays',
+    'Leads',
+    'Mail merge',
+    'Quests, boss & plant',
+    'Learning',
+    'Screen time',
+    'Smart nudges',
   ][index];
 }
 
@@ -58,6 +88,12 @@ class AppSettings {
     this.lastBackupUtc = '',
     this.nizamCalendarId = '',
     this.backupAfterGoodNight = true,
+    this.geminiModel = 'gemini-2.5-flash',
+    this.mailDailyLimit = 300,
+    this.mailSignature = 'Habeeb',
+    this.nudgesOff = const [],
+    this.reviewDay = 7,
+    this.gmailGranted = false,
   });
 
   final String name;
@@ -100,6 +136,14 @@ class AppSettings {
   final String nizamCalendarId;
   final bool backupAfterGoodNight;
 
+  // Phase 3–4
+  final String geminiModel;
+  final int mailDailyLimit;
+  final String mailSignature;
+  final List<String> nudgesOff;
+  final int reviewDay;
+  final bool gmailGranted;
+
   bool on(Module m) => !disabled.contains(m);
 
   Map<String, Object?> toMap() => {
@@ -138,6 +182,12 @@ class AppSettings {
     'lastBackupUtc': lastBackupUtc,
     'nizamCalendarId': nizamCalendarId,
     'backupAfterGoodNight': backupAfterGoodNight,
+    'geminiModel': geminiModel,
+    'mailDailyLimit': mailDailyLimit,
+    'mailSignature': mailSignature,
+    'nudgesOff': nudgesOff,
+    'reviewDay': reviewDay,
+    'gmailGranted': gmailGranted,
   };
 
   static AppSettings fromMap(Map<String, Object?> m) {
@@ -190,6 +240,12 @@ class AppSettings {
       lastBackupUtc: v('lastBackupUtc', d.lastBackupUtc),
       nizamCalendarId: v('nizamCalendarId', d.nizamCalendarId),
       backupAfterGoodNight: v('backupAfterGoodNight', d.backupAfterGoodNight),
+      geminiModel: v('geminiModel', d.geminiModel),
+      mailDailyLimit: v('mailDailyLimit', d.mailDailyLimit),
+      mailSignature: v('mailSignature', d.mailSignature),
+      nudgesOff: (m['nudgesOff'] is List ? (m['nudgesOff'] as List).whereType<String>().toList() : const <String>[]),
+      reviewDay: v('reviewDay', d.reviewDay),
+      gmailGranted: v('gmailGranted', d.gmailGranted),
     );
   }
 }

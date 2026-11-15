@@ -6,7 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:workmanager/workmanager.dart';
 
+import '../../features/game/data/game_engine.dart';
 import '../../features/google/data/calendar_sync.dart';
+import '../../features/mail/data/mail_sender.dart';
 import '../../features/google/data/drive_backup.dart';
 import '../../features/google/domain/backup_names.dart';
 import '../db/open_db.dart';
@@ -33,10 +35,29 @@ void callbackDispatcher() {
       // Load settings into the container before using them.
       await container.read(settingsStreamProvider.future);
       final s = container.read(settingsProvider);
+      if (task == taskSync) {
+        // Every ~2 h: shields, nudges and the home-screen widget, even offline.
+        try {
+          await container.read(gameEngineProvider).processShields();
+          await container.read(gameEngineProvider).runNudges();
+          await container.read(gameEngineProvider).pushWidgets();
+        } catch (_) {}
+      }
       if (s.googleEmail.isEmpty) return true;
       switch (task) {
         case taskSync:
           await container.read(calendarSyncProvider).sync();
+        case taskMailQueue:
+          try {
+            await container.read(mailSenderProvider).run();
+          } catch (_) {
+            await NotificationService.instance.showNow(
+              backupPromptId + 1,
+              'Scheduled e-mails are ready',
+              'Tap to start sending your mail-merge campaign.',
+              payload: 'nudge:/mail',
+            );
+          }
         case taskBackup || taskBackupRetry:
           if (_backedUpRecently(s)) return true;
           try {

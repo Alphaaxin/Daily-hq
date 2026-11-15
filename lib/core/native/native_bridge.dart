@@ -26,6 +26,33 @@ class NativeBridge {
   /// true = priority-only (silence), false = back to normal.
   static Future<bool> setDnd(bool on) => _bool('setDnd', on);
 
+  /// What the app was opened with (widget route / shared text), once.
+  static Future<Map<String, Object?>?> takeLaunch() async {
+    try {
+      final m = await _ch.invokeMapMethod<String, Object?>('takeLaunch');
+      return m == null || (m['route'] == null && m['text'] == null) ? null : m;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<bool> updateWidgets(Map<String, String> values) => _bool('updateWidgets', values);
+
+  static Future<bool> hasUsageAccess() => _bool('hasUsageAccess');
+  static Future<bool> requestUsageAccess() => _bool('requestUsageAccess');
+
+  /// (package, label, minutes) for apps used since [fromUtc].
+  static Future<List<(String, String, int)>> usageSince(DateTime fromUtc) async {
+    try {
+      final l = await _ch.invokeListMethod<Object?>('usageSince', fromUtc.millisecondsSinceEpoch) ?? const [];
+      return [
+        for (final e in l.whereType<Map>()) ('${e['package']}', '${e['label']}', ((e['ms'] as num?) ?? 0) ~/ 60000),
+      ];
+    } catch (_) {
+      return const [];
+    }
+  }
+
   /// Closes the Quick Log popup activity (no-op in the main app).
   static Future<bool> finishPopup() => _bool('finishPopup');
 }

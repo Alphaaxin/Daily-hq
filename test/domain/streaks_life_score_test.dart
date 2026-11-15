@@ -30,28 +30,55 @@ void main() {
   });
 
   group('life score', () {
+    const all1 = LifeInputs(tasks: 1, habits: 1, targets: 1, salah: 1, sleep: 1, water: 1, build: 1, money: 1);
+    const all0 = LifeInputs(tasks: 0, habits: 0, targets: 0, salah: 0, sleep: 0, water: 0, build: 0, money: 0);
+
     test('perfect day is 100, empty is 0', () {
-      expect(lifeScore(const LifeInputs(tasks: 1, habits: 1, salah: 1, water: 1, sleep: 1)), 100);
-      expect(lifeScore(const LifeInputs(tasks: 0, habits: 0, salah: 0, water: 0, sleep: 0)), 0);
+      expect(lifeScore(all1), 100);
+      expect(lifeScore(all0), 0);
       expect(lifeScore(const LifeInputs()), 0);
     });
 
-    test('weights', () {
-      // tasks 25, habits 20, salah 20, water 15, sleep 20 (total 100)
-      expect(lifeScore(const LifeInputs(tasks: 1, habits: 0, salah: 0, water: 0, sleep: 0)), 25);
-      expect(lifeScore(const LifeInputs(tasks: 0, habits: 0, salah: 0, water: 1, sleep: 0)), 15);
-      expect(lifeScore(const LifeInputs(tasks: .5, habits: .5, salah: .5, water: .5, sleep: .5)), 50);
+    test('weights add up to 100', () {
+      const w = [
+        LifeWeights.tasks,
+        LifeWeights.habits,
+        LifeWeights.targets,
+        LifeWeights.salah,
+        LifeWeights.sleep,
+        LifeWeights.water,
+        LifeWeights.build,
+        LifeWeights.money,
+      ];
+      expect(w.reduce((a, b) => a + b), 100);
+      expect(
+        lifeScore(const LifeInputs(tasks: 1, habits: 0, targets: 0, salah: 0, sleep: 0, water: 0, build: 0, money: 0)),
+        15,
+      );
+      expect(
+        lifeScore(const LifeInputs(tasks: 0, habits: 0, targets: 0, salah: 0, sleep: 0, water: 1, build: 0, money: 0)),
+        10,
+      );
+      expect(
+        lifeScore(
+          const LifeInputs(tasks: .5, habits: .5, targets: .5, salah: .5, sleep: .5, water: .5, build: .5, money: .5),
+        ),
+        50,
+      );
     });
 
     test('clamps out-of-range ratios', () {
-      expect(lifeScore(const LifeInputs(tasks: 3, habits: 1, salah: 1, water: 1, sleep: 1)), 100);
-      expect(lifeScore(const LifeInputs(tasks: -1, habits: 0, salah: 0, water: 0, sleep: 0)), 0);
+      expect(
+        lifeScore(const LifeInputs(tasks: 3, habits: 1, targets: 1, salah: 1, sleep: 1, water: 1, build: 1, money: 1)),
+        100,
+      );
+      expect(lifeScore(const LifeInputs(tasks: -1)), 0);
     });
 
     test('disabled modules are left out and weights renormalised', () {
       expect(lifeScore(const LifeInputs(water: 1)), 100);
-      // habits 20 done + salah 20 not done -> 50
-      expect(lifeScore(const LifeInputs(habits: 1, salah: 0)), 50);
+      // salah 15 done + tasks 15 not done → 50
+      expect(lifeScore(const LifeInputs(salah: 1, tasks: 0)), 50);
     });
 
     test('ratio helper', () {

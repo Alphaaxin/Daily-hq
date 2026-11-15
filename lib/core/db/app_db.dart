@@ -184,6 +184,7 @@ class FocusSessions extends Table {
   TextColumn get kind => text()(); // build | pomodoro | work | manual
   IntColumn get profileId => integer().nullable().references(Profiles, #id)();
   IntColumn get ideaId => integer().nullable().references(Ideas, #id)();
+  IntColumn get learningId => integer().nullable()();
   DateTimeColumn get startUtc => dateTime()();
 
   /// Null while running.
@@ -247,6 +248,210 @@ class SyncStates extends Table {
   Set<Column> get primaryKey => {key};
 }
 
+// ---------------------------------------------------------------- v3 tables
+
+/// Brain: notes with templates, tags and an optional work profile.
+class Notes extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get title => text().withDefault(const Constant(''))();
+  TextColumn get body => text().withDefault(const Constant(''))();
+  TextColumn get template => text().withDefault(const Constant('Thought dump'))();
+  TextColumn get tags => text().withDefault(const Constant(''))();
+  IntColumn get profileId => integer().nullable().references(Profiles, #id)();
+  IntColumn get ideaId => integer().nullable().references(Ideas, #id)();
+  IntColumn get meetingId => integer().nullable()();
+  BoolColumn get pinned => boolean().withDefault(const Constant(false))();
+  BoolColumn get archived => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAtUtc => dateTime()();
+  DateTimeColumn get updatedAtUtc => dateTime()();
+}
+
+/// A recorded or uploaded meeting and its processing state.
+class Meetings extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get title => text().withDefault(const Constant('Meeting'))();
+  DateTimeColumn get startedAtUtc => dateTime()();
+  IntColumn get durationSec => integer().withDefault(const Constant(0))();
+
+  /// recording | pending | transcribing | summarizing | done | error
+  TextColumn get status => text().withDefault(const Constant('pending'))();
+
+  /// JSON list of local audio file paths (chunks, in order).
+  TextColumn get audioPaths => text().withDefault(const Constant('[]'))();
+
+  /// JSON list of chunk transcripts already done (for resume / retry).
+  TextColumn get chunkTranscripts => text().withDefault(const Constant('[]'))();
+  TextColumn get transcript => text().withDefault(const Constant(''))();
+  TextColumn get momJson => text().nullable()();
+  TextColumn get emailDraft => text().nullable()();
+  IntColumn get profileId => integer().nullable().references(Profiles, #id)();
+  TextColumn get error => text().nullable()();
+  IntColumn get attempts => integer().withDefault(const Constant(0))();
+  TextColumn get driveFileIds => text().withDefault(const Constant('[]'))();
+  BoolColumn get actionsCreated => boolean().withDefault(const Constant(false))();
+}
+
+class People extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text().withLength(min: 1, max: 80)();
+  TextColumn get phone => text().withDefault(const Constant(''))();
+  TextColumn get email => text().withDefault(const Constant(''))();
+
+  /// MM-DD or YYYY-MM-DD.
+  TextColumn get birthday => text().nullable()();
+  TextColumn get notes => text().withDefault(const Constant(''))();
+  IntColumn get profileId => integer().nullable().references(Profiles, #id)();
+  BoolColumn get archived => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAtUtc => dateTime()();
+}
+
+class Leads extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text().withLength(min: 1, max: 120)();
+  TextColumn get business => text().withDefault(const Constant(''))();
+  TextColumn get phone => text().withDefault(const Constant(''))();
+  TextColumn get email => text().withDefault(const Constant(''))();
+  TextColumn get location => text().withDefault(const Constant(''))();
+  TextColumn get mapsUrl => text().withDefault(const Constant(''))();
+  TextColumn get source => text().withDefault(const Constant(''))();
+  TextColumn get notes => text().withDefault(const Constant(''))();
+  IntColumn get profileId => integer().nullable().references(Profiles, #id)();
+
+  /// new | contacted | replied | interested | closed | lost
+  TextColumn get stage => text().withDefault(const Constant('new'))();
+  TextColumn get day => text()();
+  DateTimeColumn get createdAtUtc => dateTime()();
+  DateTimeColumn get updatedAtUtc => dateTime()();
+  BoolColumn get archived => boolean().withDefault(const Constant(false))();
+}
+
+/// Call / message / email reminders for people and leads.
+class FollowUps extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get personId => integer().nullable().references(People, #id)();
+  IntColumn get leadId => integer().nullable().references(Leads, #id)();
+  DateTimeColumn get dueAtUtc => dateTime()();
+  TextColumn get note => text().withDefault(const Constant(''))();
+
+  /// call | whatsapp | email | any
+  TextColumn get channel => text().withDefault(const Constant('any'))();
+  DateTimeColumn get doneAtUtc => dateTime().nullable()();
+  TextColumn get origin => text().withDefault(const Constant('manual'))(); // manual | mail | meeting
+}
+
+class MailTemplates extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text().withLength(min: 1, max: 80)();
+  TextColumn get subject => text().withDefault(const Constant(''))();
+  TextColumn get body => text().withDefault(const Constant(''))();
+  DateTimeColumn get updatedAtUtc => dateTime()();
+}
+
+class MailSends extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get campaign => text()();
+  TextColumn get toEmail => text()();
+  TextColumn get toName => text().withDefault(const Constant(''))();
+  TextColumn get subject => text()();
+  TextColumn get body => text()();
+  IntColumn get leadId => integer().nullable()();
+  IntColumn get personId => integer().nullable()();
+
+  /// queued | sent | failed | cancelled
+  TextColumn get status => text().withDefault(const Constant('queued'))();
+  DateTimeColumn get scheduledAtUtc => dateTime()();
+  DateTimeColumn get sentAtUtc => dateTime().nullable()();
+  TextColumn get error => text().nullable()();
+  TextColumn get gmailId => text().nullable()();
+}
+
+/// Daily quest pool and the 3 picked each day.
+class Quests extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get title => text().withLength(min: 1, max: 100)();
+  IntColumn get xp => integer().withDefault(const Constant(15))();
+  BoolColumn get archived => boolean().withDefault(const Constant(false))();
+}
+
+class DailyQuests extends Table {
+  TextColumn get day => text()();
+  IntColumn get questId => integer().references(Quests, #id)();
+  BoolColumn get done => boolean().withDefault(const Constant(false))();
+  @override
+  Set<Column> get primaryKey => {day, questId};
+}
+
+/// Weekly boss challenges (pool) and which one is active each week.
+class Bosses extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get title => text()();
+
+  /// buildHours | leads | emails | pomodoros | waterDays | salahDays | tasks
+  TextColumn get metric => text()();
+  IntColumn get goal => integer()();
+  IntColumn get xp => integer().withDefault(const Constant(150))();
+  BoolColumn get archived => boolean().withDefault(const Constant(false))();
+}
+
+class WeekBosses extends Table {
+  TextColumn get weekStart => text()();
+  IntColumn get bossId => integer().references(Bosses, #id)();
+  BoolColumn get claimed => boolean().withDefault(const Constant(false))();
+  @override
+  Set<Column> get primaryKey => {weekStart};
+}
+
+/// Streak shields: earned weekly, spent automatically on a missed day.
+class ShieldEvents extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get kind => text()(); // earn | use
+  TextColumn get day => text()();
+}
+
+/// Life Score snapshot per day (Year in Pixels, reports).
+class DayScores extends Table {
+  TextColumn get day => text()();
+  IntColumn get score => integer()();
+  @override
+  Set<Column> get primaryKey => {day};
+}
+
+class LearningItems extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get title => text().withLength(min: 1, max: 120)();
+  TextColumn get kind => text().withDefault(const Constant('course'))(); // course | book | skill
+  IntColumn get total => integer().withDefault(const Constant(10))();
+  IntColumn get done => integer().withDefault(const Constant(0))();
+  TextColumn get unit => text().withDefault(const Constant('lessons'))();
+  BoolColumn get archived => boolean().withDefault(const Constant(false))();
+}
+
+class AppLimits extends Table {
+  TextColumn get packageName => text()();
+  TextColumn get label => text()();
+  IntColumn get minutes => integer()();
+  @override
+  Set<Column> get primaryKey => {packageName};
+}
+
+class Reviews extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get kind => text()(); // weekly | monthly
+  TextColumn get period => text()(); // week start or YYYY-MM
+  TextColumn get worked => text().withDefault(const Constant(''))();
+  TextColumn get didnt => text().withDefault(const Constant(''))();
+  TextColumn get focus => text().withDefault(const Constant(''))();
+  DateTimeColumn get createdAtUtc => dateTime()();
+}
+
+/// Remembers which smart nudges fired, so none repeats the same day.
+class NudgeLog extends Table {
+  TextColumn get key => text()();
+  DateTimeColumn get atUtc => dateTime()();
+  @override
+  Set<Column> get primaryKey => {key};
+}
+
 @DriftDatabase(
   tables: [
     Settings,
@@ -272,6 +477,23 @@ class SyncStates extends Table {
     Gratitude,
     CalendarEvents,
     SyncStates,
+    Notes,
+    Meetings,
+    People,
+    Leads,
+    FollowUps,
+    MailTemplates,
+    MailSends,
+    Quests,
+    DailyQuests,
+    Bosses,
+    WeekBosses,
+    ShieldEvents,
+    DayScores,
+    LearningItems,
+    AppLimits,
+    Reviews,
+    NudgeLog,
   ],
 )
 class AppDb extends _$AppDb {
@@ -280,7 +502,7 @@ class AppDb extends _$AppDb {
   @override
   int get schemaVersion => currentSchema;
 
-  static const currentSchema = 2;
+  static const currentSchema = 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -288,6 +510,7 @@ class AppDb extends _$AppDb {
       await m.createAll();
       await _seed();
       await _seedV2();
+      await _seedV3();
     },
     onUpgrade: (m, from, to) async {
       if (from < 2) {
@@ -310,6 +533,32 @@ class AppDb extends _$AppDb {
           await m.createTable(t);
         }
         await _seedV2();
+      }
+      if (from < 3) {
+        // From v1 the table was just created with the latest columns above.
+        if (from >= 2) await m.addColumn(focusSessions, focusSessions.learningId);
+        for (final TableInfo t in [
+          notes,
+          meetings,
+          people,
+          leads,
+          followUps,
+          mailTemplates,
+          mailSends,
+          quests,
+          dailyQuests,
+          bosses,
+          weekBosses,
+          shieldEvents,
+          dayScores,
+          learningItems,
+          appLimits,
+          reviews,
+          nudgeLog,
+        ]) {
+          await m.createTable(t);
+        }
+        await _seedV3();
       }
     },
     beforeOpen: (details) async {
@@ -371,6 +620,72 @@ class AppDb extends _$AppDb {
         RoutineItemsCompanion.insert(routine: 'morning', name: 'Pick top 3 priorities', sort: const Value(2)),
         RoutineItemsCompanion.insert(routine: 'evening', name: 'Review today', sort: const Value(0)),
         RoutineItemsCompanion.insert(routine: 'evening', name: 'Plan tomorrow\'s top 3', sort: const Value(1)),
+      ]);
+    });
+  }
+
+  Future<void> _seedV3() async {
+    final now = DateTime.now().toUtc();
+    final zillvox = await (select(profiles)..where((p) => p.name.equals('Zillvox'))).getSingleOrNull();
+    final n = (await select(targets).get()).length;
+    await batch((b) {
+      b.insertAll(targets, [
+        TargetsCompanion.insert(
+          name: 'Sales calls',
+          goal: 10,
+          profileId: Value(zillvox?.id),
+          autoSource: const Value('calls'),
+          sort: Value(n),
+        ),
+        TargetsCompanion.insert(name: 'Meetings booked', goal: 1, profileId: Value(zillvox?.id), sort: Value(n + 1)),
+      ]);
+    });
+    await batch((b) {
+      b.insertAll(quests, [
+        for (final (q, xp) in [
+          ('Message 3 old clients or contacts', 20),
+          ('Learn one new AI tool for 15 minutes', 15),
+          ('Inbox zero before Asr', 15),
+          ('Walk 4,000 steps', 15),
+          ('Read 10 pages', 10),
+          ('Write a LinkedIn post', 20),
+          ('No Instagram until Build Hour is done', 20),
+          ('Plan tomorrow before Isha', 10),
+          ('Drink 3 glasses before noon', 10),
+          ('Call one lead you haven\'t called yet', 20),
+          ('Tidy your desk for 5 minutes', 10),
+          ('Revise one CS topic for 20 minutes', 15),
+        ])
+          QuestsCompanion.insert(title: q, xp: Value(xp)),
+      ]);
+      b.insertAll(bosses, [
+        BossesCompanion.insert(title: '5 Build Hours this week', metric: 'buildHours', goal: 5),
+        BossesCompanion.insert(title: 'Collect 100 leads', metric: 'leads', goal: 100),
+        BossesCompanion.insert(title: 'Send 50 outreach emails', metric: 'emails', goal: 50),
+        BossesCompanion.insert(title: '15 Pomodoros', metric: 'pomodoros', goal: 15),
+        BossesCompanion.insert(title: 'Hit your water goal 6 days', metric: 'waterDays', goal: 6),
+        BossesCompanion.insert(title: 'All 5 prayers on 6 days', metric: 'salahDays', goal: 6),
+        BossesCompanion.insert(title: 'Finish 25 tasks', metric: 'tasks', goal: 25),
+      ]);
+      b.insertAll(mailTemplates, [
+        MailTemplatesCompanion.insert(
+          name: 'Intro: AI marketing help',
+          subject: const Value('Quick idea for {{business}}'),
+          body: const Value(
+            'Hi {{name}},\n\nI came across {{business}} and had a quick idea to bring you more '
+            'customers using simple AI tools and better follow-ups.\n\nWould a 15-minute call this week work?\n\n'
+            'Best,\nHabeeb',
+          ),
+          updatedAtUtc: now,
+        ),
+      ]);
+      b.insertAll(learningItems, [
+        LearningItemsCompanion.insert(
+          title: 'CS semester subjects',
+          kind: const Value('course'),
+          total: const Value(40),
+          unit: const Value('topics'),
+        ),
       ]);
     });
   }
